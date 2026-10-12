@@ -1,0 +1,11 @@
+This release runs example ingestion against the existing DataWave stack.
+Job: {{ include "examples.jobName" . }}
+
+Follow the submission log:
+  kubectl logs -n {{ .Release.Namespace }} job/{{ include "examples.jobName" . }} -f
+
+Check completion:
+  kubectl get job -n {{ .Release.Namespace }} {{ include "examples.jobName" . }}
+
+To run again, change runId with helm upgrade, or uninstall/reinstall this release.
+Uninstalling this chart removes its Job and runner ConfigMap; ingested data remains.

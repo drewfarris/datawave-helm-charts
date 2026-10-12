@@ -40,6 +40,12 @@ It does not publish charts or images.
 
 
 
+## Standalone test-data ingestion
+
+The [ingest-examples chart](ingest-examples/README.md) runs the quickstart
+Wikipedia, annotation, JSON, and CSV examples as a separate Helm release against
+an existing DataWave stack. It is not installed by `datawave-driver.sh`.
+
 ## Testing of images and helm charts ##
 
 Images are now created in [Datawave Stack Docker Images](https://github.com/nationalSecurityAgency/datawave-stack-docker-images)

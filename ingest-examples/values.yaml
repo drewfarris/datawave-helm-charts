@@ -1,0 +1,51 @@
+image:
+  repository: local/datawave/ingest-examples
+  tag: 8.2.1-SNAPSHOT-annotationfix
+  pullPolicy: IfNotPresent
+imagePullSecrets:
+  - name: dockerconfigjson-ghcr
+
+# These resources belong to the main stack and must exist in this namespace.
+existing:
+  sharedConfigClaim: datawave-ingest-config-pvc
+  ingestEnvConfigMap: dwv-ingest-ingest-env-configmap
+  hadoopConfigMap: hadoop-config
+  accumuloConfigMap: accumulo-config
+  gendersConfigMap: dwv-ingest-genders
+  credentialsSecret: dwv-dwv-ingest-cmds
+  credentialsKey: ingest-passwd.sh
+
+# Change runId to create a new Job, or uninstall/reinstall this separate release.
+runId: "1"
+job:
+  backoffLimit: 0
+  activeDeadlineSeconds: 3600
+  ttlSecondsAfterFinished: null
+
+# Set this to JOB_CACHE_DIR in the running ingest service's job-cache-env.sh.
+# The default is the cache created by a fresh default stack installation.
+jobCache:
+  directory: /datawave/ingest/work/jobCacheB
+
+examples:
+  # Additional choices: wikipedia-medium, wikipedia-de, wikipedia-es, wikipedia-fr.
+  datasets: [wikipedia, annotation, json, csv]
+  numShards: 10
+  hdfsBaseDirectory: /datawave/ingest/examples
+  extraIngestOptions: "-useInlineCombiner -ingestMetricsDisabled"
+  # Annotation requires additional tables absent from the default stack setup.
+  createTables: true
+  # The upstream CSV fixture deliberately contains an invalid record.
+  allowExpectedCsvErrors: true
+
+# Optional additional application dependencies. Hadoop libraries come from the image.
+additionalLibraries: ""
+resources:
+  requests:
+    cpu: 250m
+    memory: 512Mi
+  limits:
+    memory: 2Gi
+nodeSelector: {}
+tolerations: []
+affinity: {}
