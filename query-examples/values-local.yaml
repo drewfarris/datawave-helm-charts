@@ -1,0 +1,4 @@
+# Identity trusted by the bundled Helm development truststore.
+client:
+  proxiedSubject: "cn=test a. user, ou=example developers, o=example corp, c=us"
+  proxiedIssuer: "cn=example corp ca, o=example corp, c=us"

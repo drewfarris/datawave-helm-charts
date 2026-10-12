@@ -1,0 +1,182 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "image": {
+      "type": "object",
+      "required": [
+        "repository",
+        "tag",
+        "pullPolicy"
+      ],
+      "properties": {
+        "repository": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tag": {
+          "type": "string",
+          "minLength": 1
+        },
+        "pullPolicy": {
+          "enum": [
+            "Always",
+            "IfNotPresent",
+            "Never"
+          ]
+        }
+      }
+    },
+    "runId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 10,
+      "pattern": "^[a-zA-Z0-9-]+$"
+    },
+    "endpoint": {
+      "type": "object",
+      "required": [
+        "hostPort"
+      ],
+      "properties": {
+        "hostPort": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9.:-]+$"
+        }
+      }
+    },
+    "client": {
+      "type": "object",
+      "required": [
+        "secretName",
+        "certificateKey",
+        "privateKeyKey"
+      ],
+      "properties": {
+        "secretName": {
+          "type": "string",
+          "minLength": 1
+        },
+        "certificateKey": {
+          "type": "string",
+          "minLength": 1
+        },
+        "privateKeyKey": {
+          "type": "string",
+          "minLength": 1
+        },
+        "proxiedSubject": {
+          "type": "string"
+        },
+        "proxiedIssuer": {
+          "type": "string"
+        }
+      }
+    },
+    "prerequisites": {
+      "type": "object",
+      "properties": {
+        "requireIngestionJob": {
+          "type": "boolean"
+        },
+        "ingestionRelease": {
+          "type": "string",
+          "minLength": 1
+        },
+        "requiredDatasets": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "timeoutSeconds": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "pollSeconds": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "cache": {
+      "type": "object",
+      "properties": {
+        "tables": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1
+        },
+        "timeoutSeconds": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "pollSeconds": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "job": {
+      "type": "object",
+      "properties": {
+        "backoffLimit": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "activeDeadlineSeconds": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "ttlSecondsAfterFinished": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        }
+      }
+    },
+    "tests": {
+      "type": "object",
+      "properties": {
+        "whitelistFiles": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "blacklistFiles": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "whitelistTests": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "blacklistTests": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "verbose": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}

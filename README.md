@@ -46,6 +46,10 @@ The [ingest-examples chart](ingest-examples/README.md) runs the quickstart
 Wikipedia, annotation, JSON, and CSV examples as a separate Helm release against
 an existing DataWave stack. It is not installed by `datawave-driver.sh`.
 
+The [query-examples chart](query-examples/README.md) runs the quickstart WildFly
+API tests independently. It requires completed sample ingestion and waits for
+metadata table-cache reloads before executing queries.
+
 ## Testing of images and helm charts ##
 
 Images are now created in [Datawave Stack Docker Images](https://github.com/nationalSecurityAgency/datawave-stack-docker-images)

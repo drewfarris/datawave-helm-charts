@@ -1,0 +1,4 @@
+Job: {{ include "queries.jobName" . }}
+Follow results:
+  kubectl logs -n {{ .Release.Namespace }} job/{{ include "queries.jobName" . }} -f
+Change runId with helm upgrade to run again.

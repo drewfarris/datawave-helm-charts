@@ -1,0 +1,105 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "queries.jobName" . }}
+  labels:
+    {{- include "queries.labels" . | nindent 4 }}
+spec:
+  backoffLimit: {{ .Values.job.backoffLimit }}
+  activeDeadlineSeconds: {{ .Values.job.activeDeadlineSeconds }}
+  {{- if ne .Values.job.ttlSecondsAfterFinished nil }}
+  ttlSecondsAfterFinished: {{ .Values.job.ttlSecondsAfterFinished }}
+  {{- end }}
+  template:
+    metadata:
+      labels:
+        {{- include "queries.labels" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "queries.name" . }}
+      automountServiceAccountToken: {{ .Values.prerequisites.requireIngestionJob }}
+      restartPolicy: Never
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1002
+        runAsGroup: 1002
+        fsGroup: 1002
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: query-examples
+          image: {{ printf "%s:%s" .Values.image.repository .Values.image.tag | quote }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["/bin/bash", "/runner/run-queries.sh"]
+          env:
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: HOST_PORT
+              value: {{ .Values.endpoint.hostPort | quote }}
+            - name: PROXIED_SUBJECT
+              value: {{ .Values.client.proxiedSubject | quote }}
+            - name: PROXIED_ISSUER
+              value: {{ .Values.client.proxiedIssuer | quote }}
+            - name: REQUIRE_INGESTION_JOB
+              value: {{ .Values.prerequisites.requireIngestionJob | quote }}
+            - name: INGESTION_RELEASE
+              value: {{ .Values.prerequisites.ingestionRelease | quote }}
+            - name: REQUIRED_DATASETS
+              value: {{ join "," .Values.prerequisites.requiredDatasets | quote }}
+            - name: PREREQUISITE_TIMEOUT
+              value: {{ .Values.prerequisites.timeoutSeconds | quote }}
+            - name: PREREQUISITE_POLL
+              value: {{ .Values.prerequisites.pollSeconds | quote }}
+            - name: CACHE_TABLES
+              value: {{ join "," .Values.cache.tables | quote }}
+            - name: CACHE_TIMEOUT
+              value: {{ .Values.cache.timeoutSeconds | quote }}
+            - name: CACHE_POLL
+              value: {{ .Values.cache.pollSeconds | quote }}
+            - name: TEST_VERBOSE
+              value: {{ .Values.tests.verbose | quote }}
+            - name: WHITELIST_FILES
+              value: {{ join "," .Values.tests.whitelistFiles | quote }}
+            - name: BLACKLIST_FILES
+              value: {{ join "," .Values.tests.blacklistFiles | quote }}
+            - name: WHITELIST_TESTS
+              value: {{ join "," .Values.tests.whitelistTests | quote }}
+            - name: BLACKLIST_TESTS
+              value: {{ join "," .Values.tests.blacklistTests | quote }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: runner
+              mountPath: /runner
+              readOnly: true
+            - name: client
+              mountPath: /client
+              readOnly: true
+      volumes:
+        - name: runner
+          configMap:
+            name: {{ include "queries.name" . }}-runner
+        - name: client
+          secret:
+            secretName: {{ .Values.client.secretName | quote }}
+            defaultMode: 0440
+            items:
+              - key: {{ .Values.client.certificateKey | quote }}
+                path: client.crt
+              - key: {{ .Values.client.privateKeyKey | quote }}
+                path: client.key
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
