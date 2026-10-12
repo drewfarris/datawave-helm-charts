@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "queries.name" . }}-runner
+data:
+  run-queries.sh: |
+    {{- .Files.Get "files/run-queries.sh" | nindent 4 }}
+  prepare-queries.py: |
+    {{- .Files.Get "files/prepare-queries.py" | nindent 4 }}

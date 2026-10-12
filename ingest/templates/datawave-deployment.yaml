@@ -12,6 +12,9 @@ spec:
       app.kubernetes.io/component: ingest
   template:
     metadata:
+      annotations:
+        checksum/general-ingest-config: {{ include (print $.Template.BasePath "/xml-config-configmap.yaml") . | sha256sum }}
+        checksum/init-container-cmds: {{ include (print $.Template.BasePath "/init-container-start-cmds_secret.yaml") . | sha256sum }}
       labels:
         app.kubernetes.io/component: ingest
     spec:

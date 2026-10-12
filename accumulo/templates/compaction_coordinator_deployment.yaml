@@ -13,6 +13,8 @@ spec:
       app.kubernetes.io/component: compaction-coordinator
   template:
     metadata:
+      annotations:
+        checksum/accumulo-config: {{ include (print $.Template.BasePath "/site-config.yaml") $ | sha256sum }}
       labels:
         {{- include "accumulo.labels" . | nindent 8 }}
         app.kubernetes.io/component: compaction-coordinator

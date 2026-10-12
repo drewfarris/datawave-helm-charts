@@ -1,3 +1,8 @@
+# Optional dependencies required by source-built Accumulo extensions.
+# Unmatched patterns are skipped for compatibility with older ingest images.
+vfs:
+  additionalJarPatterns:
+    - /opt/datawave-ingest/current/lib/accumulo-access-core-*.jar
 global:
   pullSecrets:
     - dockerconfigjson-ghcr
@@ -600,6 +605,11 @@ config:
       description: >-
         Default ColumnVisibility to be applied to fields/records if none
         provided in the data
+    # Match the source defaults so unfielded error queries can discover terms.
+    - name: error.data.category.index
+      value: '*'
+    - name: error.data.category.index.reverse
+      value: '*'
     - name: error.data.replace.malformed.utf8
       value: true
     - name: partitioner.category.member.datawave.error_s

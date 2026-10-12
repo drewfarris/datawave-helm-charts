@@ -51,6 +51,8 @@ spec:
     ##################################################
 
     metadata:
+      annotations:
+        checksum/configuration: {{ include (print $.Template.BasePath "/configuration-map.yaml") $ | sha256sum }}
       labels:
         application: "{{ .Values.meta.name }}"
 

@@ -88,3 +88,7 @@ ports:
 configurationMap:
   meta:
     name: configuration-map
+
+# Optional roles for the bundled development user and proxy-server identities.
+mockAuthorization:
+  additionalRolesToAuths: {}

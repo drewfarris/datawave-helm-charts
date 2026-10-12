@@ -300,6 +300,17 @@
         },
         "restartPolicy": {
             "type": "string"
+        },
+        "mockAuthorization": {
+            "type": "object",
+            "properties": {
+                "additionalRolesToAuths": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                }
+            }
         }
     },
     "title": "Helm Values Schema",

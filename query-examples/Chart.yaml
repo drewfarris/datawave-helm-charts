@@ -1,0 +1,6 @@
+apiVersion: v2
+name: datawave-query-examples
+description: Run quickstart WildFly API tests after example ingestion and cache reload
+type: application
+version: 0.1.0
+appVersion: 8.2.1-SNAPSHOT

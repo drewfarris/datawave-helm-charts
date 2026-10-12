@@ -1,0 +1,117 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "examples.jobName" . }}
+  labels:
+    {{- include "examples.labels" . | nindent 4 }}
+spec:
+  backoffLimit: {{ .Values.job.backoffLimit }}
+  activeDeadlineSeconds: {{ .Values.job.activeDeadlineSeconds }}
+  {{- if ne .Values.job.ttlSecondsAfterFinished nil }}
+  ttlSecondsAfterFinished: {{ .Values.job.ttlSecondsAfterFinished }}
+  {{- end }}
+  template:
+    metadata:
+      labels:
+        {{- include "examples.labels" . | nindent 8 }}
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1002
+        runAsGroup: 1002
+        fsGroup: 1002
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: ingest-examples
+          image: {{ printf "%s:%s" .Values.image.repository .Values.image.tag | quote }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["/bin/bash", "/runner/run-examples.sh"]
+          env:
+            - name: EXISTING_JOB_CACHE_DIRECTORY
+              value: {{ .Values.jobCache.directory | quote }}
+            - name: EXAMPLE_DATASETS
+              value: {{ join "," .Values.examples.datasets | quote }}
+            - name: EXAMPLES_HDFS_DIRECTORY
+              value: {{ printf "%s/%s" (trimSuffix "/" .Values.examples.hdfsBaseDirectory) (include "examples.jobName" .) | quote }}
+            - name: DW_DATAWAVE_INGEST_NUM_SHARDS
+              value: {{ .Values.examples.numShards | quote }}
+            - name: EXAMPLE_INGEST_OPTIONS
+              value: {{ .Values.examples.extraIngestOptions | quote }}
+            - name: ALLOW_EXPECTED_CSV_ERRORS
+              value: {{ .Values.examples.allowExpectedCsvErrors | quote }}
+            - name: CREATE_EXAMPLE_TABLES
+              value: {{ .Values.examples.createTables | quote }}
+            - name: ADDITIONAL_INGEST_LIBS
+              value: {{ .Values.additionalLibraries | quote }}
+            - name: HADOOP_CONF_DIR
+              value: /usr/local/hadoop/conf
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: runner
+              mountPath: /runner
+              readOnly: true
+            - name: shared-config
+              mountPath: /stack-config
+              readOnly: true
+            - name: ingest-env
+              mountPath: /opt/datawave-ingest/current/bin/ingest/ingest-env.sh
+              subPath: ingest-env.sh
+              readOnly: true
+            - name: credentials
+              mountPath: /opt/datawave-ingest/ingest-passwd.sh
+              subPath: ingest-passwd.sh
+              readOnly: true
+            - name: hadoop-config
+              mountPath: /usr/local/hadoop/conf
+              readOnly: true
+            - name: accumulo-config
+              mountPath: /opt/accumulo/conf
+              readOnly: true
+            - name: genders
+              mountPath: /etc/genders
+              subPath: genders
+              readOnly: true
+      volumes:
+        - name: runner
+          configMap:
+            name: {{ include "examples.name" . }}-runner
+        - name: shared-config
+          persistentVolumeClaim:
+            claimName: {{ .Values.existing.sharedConfigClaim | quote }}
+            readOnly: true
+        - name: ingest-env
+          configMap:
+            name: {{ .Values.existing.ingestEnvConfigMap | quote }}
+        - name: credentials
+          secret:
+            secretName: {{ .Values.existing.credentialsSecret | quote }}
+            items:
+              - key: {{ .Values.existing.credentialsKey | quote }}
+                path: ingest-passwd.sh
+        - name: hadoop-config
+          configMap:
+            name: {{ .Values.existing.hadoopConfigMap | quote }}
+        - name: accumulo-config
+          configMap:
+            name: {{ .Values.existing.accumuloConfigMap | quote }}
+        - name: genders
+          configMap:
+            name: {{ .Values.existing.gendersConfigMap | quote }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

@@ -23,9 +23,58 @@ Prerequisites:
 
 If you already have the prerequisites installed you can simply run `./datawave-driver.sh`
 
+The driver installs or upgrades the MySQL Operator as release `dwv-mysql-operator`
+in namespace `mysql-operator`, separately from the DataWave release `dwv` in your
+selected namespace. The operator chart cannot be installed in `default`. The
+driver waits up to five minutes for the operator and stops if setup fails. It pins
+the tested operator chart version to `2.3.0`; override it with
+`MYSQL_OPERATOR_CHART_VERSION` when validating another version.
+
+### Using locally built application images
+
+Choose `local` chart mode to use changes in this checkout. Local packaging uses a
+temporary copy without existing `.tgz` archives and stops on packaging errors.
+It does not publish charts or images.
+
+`datawave-stack/values-local-images.yaml` is an optional overlay for the locally
+built DataWave 8.2.1-SNAPSHOT ingest and webservice images. It selects ingest tag
+`sandbox-20261011-lang3` and webservice tag `sandbox-20261011` with `IfNotPresent`.
+These tags must exist on every Minikube node before installation:
+
+```bash
+minikube image load local/datawave/ingest-kubernetes:sandbox-20261011-lang3
+minikube image load local/datawave/webservice-kubernetes:sandbox-20261011
+DATAWAVE_VALUES_OVERLAY="$PWD/datawave-stack/values-local-images.yaml" ./datawave-driver.sh
+```
+
+At the prompts, choose `local`, use the existing Minikube cluster, select namespace
+`default`, and accept the default base values file. The overlay is applied after
+that file. Reusing an existing cluster skips the driver's Minikube setup and image
+preload; keep its existing ingress, DNS, and CSI storage configuration. Deleting
+Minikube requires loading the images and configuring those prerequisites again.
+
+The ingest image also needs the `lsof` installation change in the separate
+DataWave source repository's `warehouse/assemble/datawave/src/main/docker/Dockerfile`.
+The warehouse Commons Lang dependency must also use the root project version
+(`warehouse/pom.xml`); its older override caused Accumulo launcher failures.
+This chart repository does not build the application images. Default chart values
+still select the published application images; select the overlay to reproduce
+the source-built setup. A full ingest/query round trip is separate from Helm
+readiness and should be checked after installation.
 
 
 
+
+
+## Standalone test-data ingestion
+
+The [ingest-examples chart](ingest-examples/README.md) runs the quickstart
+Wikipedia, annotation, JSON, and CSV examples as a separate Helm release against
+an existing DataWave stack. It is not installed by `datawave-driver.sh`.
+
+The [query-examples chart](query-examples/README.md) runs the quickstart WildFly
+API tests independently. It requires completed sample ingestion and waits for
+metadata table-cache reloads before executing queries.
 
 ## Testing of images and helm charts ##
 

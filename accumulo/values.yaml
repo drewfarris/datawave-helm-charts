@@ -22,6 +22,12 @@ global:
     zookeepers: zookeeper:2181
   hdfs:
     namenode: hdfs-nn:9000
+# JVM arguments for all Accumulo processes.
+# Temporary compatibility workaround for old generated Protobuf code.
+# Remove after regenerating the code with a compatible compiler/runtime.
+# Override with javaOptions: [] to disable the workaround.
+javaOptions:
+  - -Dcom.google.protobuf.use_unsafe_pre22_gencode=true
 logging:
   shellRootLevel: debug
   shellAccumuloLevel: trace
@@ -51,7 +57,7 @@ hdfs:
 zookeeper:
   externalHosts: "zookeeper"
 config:
-  auths: "JBOSS_ADMIN,DW_ADMIN,AUTH_USER,BAR,FOO,PRIVATE,PUBLIC"
+  auths: "JBOSS_ADMIN,DW_ADMIN,AUTH_USER,DW_SERV,BAR,FOO,PRIVATE,PUBLIC"
   path: /opt/accumulo/conf
   files: {}
   accumuloSite:

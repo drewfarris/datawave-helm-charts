@@ -363,6 +363,17 @@
         },
         "nameOverride": {
             "type": "string"
+        },
+        "vfs": {
+            "type": "object",
+            "properties": {
+                "additionalJarPatterns": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
         }
     },
     "title": "Helm Values Schema",

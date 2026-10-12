@@ -1,0 +1,45 @@
+image:
+  repository: local/datawave/query-examples
+  tag: 8.2.1-SNAPSHOT
+  pullPolicy: IfNotPresent
+imagePullSecrets: []
+runId: "1"
+endpoint:
+  hostPort: web-datawave:8443
+client:
+  secretName: query-examples-client
+  certificateKey: client.crt
+  privateKeyKey: client.key
+  # Optional proxy identity for the existing development AuthorizedServer certificate.
+  proxiedSubject: ""
+  proxiedIssuer: ""
+prerequisites:
+  requireIngestionJob: true
+  ingestionRelease: examples
+  requiredDatasets: [wikipedia, json, csv, wikipedia-medium, wikipedia-de, wikipedia-es, wikipedia-fr]
+  timeoutSeconds: 300
+  pollSeconds: 5
+cache:
+  tables: [datawave.metadata, datawave.queryMetrics_m, datawave.error_m]
+  timeoutSeconds: 300
+  pollSeconds: 2
+tests:
+  # Empty whitelist runs all upstream .test files.
+  whitelistFiles: []
+  blacklistFiles: []
+  whitelistTests: []
+  blacklistTests: []
+  verbose: false
+job:
+  backoffLimit: 0
+  activeDeadlineSeconds: 1800
+  ttlSecondsAfterFinished: null
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    memory: 512Mi
+nodeSelector: {}
+tolerations: []
+affinity: {}
