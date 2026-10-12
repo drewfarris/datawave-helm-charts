@@ -1,0 +1,21 @@
+# Local development images built from sandbox/datawave.
+# Load both images into Minikube before applying this overlay.
+dwv-ingest:
+  # Client libraries shipped by the Hadoop 3.4.1 runtime in this image.
+  libs: "/lib/hadoop/hadoop-common.jar:/lib/hadoop/hadoop-annotations.jar:/lib/hadoop/lib/commons-collections-3.2.2.jar:/lib/hadoop-hdfs/hadoop-hdfs-client.jar:/lib/hadoop-mapreduce/hadoop-mapreduce-client-core.jar:/lib/hadoop-mapreduce/hadoop-mapreduce-client-common.jar:/lib/hadoop-mapreduce/hadoop-mapreduce-client-jobclient.jar:/lib/hadoop-yarn/hadoop-yarn-client.jar:/lib/hadoop-yarn/hadoop-yarn-common.jar:/lib/hadoop-yarn/hadoop-yarn-api.jar:/lib/hadoop-yarn/lib/websocket-api-9.4.53.v20231009.jar:/lib/hadoop-yarn/lib/websocket-client-9.4.53.v20231009.jar:/lib/hadoop-yarn/lib/websocket-common-9.4.53.v20231009.jar"
+  image:
+    repository: local/datawave/ingest-kubernetes
+    tag: sandbox-20261011-hadoop341
+    pullPolicy: IfNotPresent
+datawave-monolith-umbrella:
+  dwv-configuration:
+    mockAuthorization:
+      additionalRolesToAuths:
+        barRole: BAR
+        fooRole: FOO
+  dwv-web:
+    datawaveDeployment:
+      image:
+        name: local/datawave/webservice-kubernetes
+        tag: sandbox-20261012-jaxb
+        pullPolicy: IfNotPresent
