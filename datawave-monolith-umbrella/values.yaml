@@ -1,3 +1,7 @@
+dwv-web:
+  cachedResults:
+    enabled: true
+
 global:
   serviceDns:
     accumuloManager:

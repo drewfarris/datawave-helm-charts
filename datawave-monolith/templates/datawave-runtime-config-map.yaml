@@ -35,6 +35,11 @@ data:
 
     /system-property=dw.remoteDatawaveUserService.host:add(value={{ .Values.authorizationService.dnsName }})
     /subsystem=messaging-activemq/server=default:write-attribute(name=security-enabled,value=false)
+    {{- if .Values.cachedResults.enabled }}
+    /subsystem=datasources/data-source=CachedResultsDS:write-attribute(name=connection-url,value="jdbc:mysql://{{ .Values.cachedResults.host }}:{{ .Values.cachedResults.port }}/{{ .Values.cachedResults.database }}?zeroDateTimeBehavior=convertToNull")
+    /subsystem=datasources/data-source=CachedResultsDS:write-attribute(name=user-name,value="${env.CACHED_RESULTS_USERNAME}")
+    /subsystem=datasources/data-source=CachedResultsDS:write-attribute(name=password,value="${env.CACHED_RESULTS_PASSWORD}")
+    {{- end }}
     {{ .Values.datawaveRuntimeConfig.additions}}
     
     # Run the batch commands (MUST BE LAST)

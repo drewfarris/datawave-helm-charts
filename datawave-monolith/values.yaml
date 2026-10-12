@@ -35,6 +35,12 @@ datawaveDeployment:
     name: ghcr.io/nationalsecurityagency/datawave/webservice-kubernetes
     pullPolicy: Always
     tag: 7.33.1
+  # Allow WildFly boot and initial table-cache population before liveness checks.
+  startupProbe:
+    enabled: true
+    periodSeconds: 5
+    failureThreshold: 120
+    timeoutSeconds: 5
   livenessProbe:
     delaySeconds: 60
     periodSeconds: 5
@@ -61,6 +67,17 @@ datawaveDeployment:
   restartPolicy: Always
 datawaveRuntimeConfig:
     additions: ""
+
+# Override the image's build-time cached-results datasource configuration.
+cachedResults:
+  enabled: false
+  host: mysql-cluster
+  port: 3306
+  database: example
+  credentials:
+    secretName: mysql-secret
+    usernameKey: rootUser
+    passwordKey: rootPassword
 
 #######################################
 # Default Values for DataWave Service #

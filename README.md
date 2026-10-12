@@ -23,6 +23,19 @@ Prerequisites:
 
 If you already have the prerequisites installed you can simply run `./datawave-driver.sh`
 
+The driver installs or upgrades the MySQL Operator as release `dwv-mysql-operator`
+in namespace `mysql-operator`, separately from the DataWave release `dwv` in your
+selected namespace. The operator chart cannot be installed in `default`. The
+driver waits up to five minutes for the operator and stops if setup fails. It pins
+the tested operator chart version to `2.3.0`; override it with
+`MYSQL_OPERATOR_CHART_VERSION` when validating another version.
+
+### Using locally built application images
+
+Choose `local` chart mode to use changes in this checkout. Local packaging uses a
+temporary copy without existing `.tgz` archives and stops on packaging errors.
+It does not publish charts or images.
+
 
 
 

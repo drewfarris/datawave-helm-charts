@@ -8,6 +8,9 @@ DATAWAVE_STACK="${BASEDIR}"/datawave-stack
 HELM_CHART=oci://ghcr.io/nationalsecurityagency/datawave-helm-charts/charts/datawave-system
 HELM_CHART_VERSION=1.0.0
 NAMESPACE=default
+MYSQL_OPERATOR_CHART_VERSION=${MYSQL_OPERATOR_CHART_VERSION:-2.3.0}
+# Optional second values file, applied after the prompted base values file.
+DATAWAVE_VALUES_OVERLAY=${DATAWAVE_VALUES_OVERLAY:-}
 
 function ready_helm_charts() {
   while true; do
@@ -45,9 +48,18 @@ function ready_helm_charts() {
         echo ""
         exit 1
     fi
-    package_helm_dependencies "${DATAWAVE_STACK}"
-    helm package ${DATAWAVE_STACK}
-    HELM_CHART=datawave-system*.tgz
+    # Package a clean copy so stale dependency archives cannot enter the release.
+    LOCAL_CHART_WORKDIR=$(mktemp -d "${TMPDIR:-/tmp}/datawave-charts.XXXXXX") || exit 1
+    trap 'rm -rf -- "${LOCAL_CHART_WORKDIR}"' EXIT
+    tar -C "$BASEDIR" --exclude='.git' --exclude='*.tgz' \
+      --exclude='ghcr-image-pull-secret.yaml' -cf "$LOCAL_CHART_WORKDIR/source.tar" . || exit 1
+    tar -C "$LOCAL_CHART_WORKDIR" -xf "$LOCAL_CHART_WORKDIR/source.tar" || exit 1
+    package_helm_dependencies "$LOCAL_CHART_WORKDIR/datawave-stack" || exit 1
+    helm package "$LOCAL_CHART_WORKDIR/datawave-stack" --destination "$LOCAL_CHART_WORKDIR" || exit 1
+    local chart_name chart_version
+    chart_name=$(yq eval -r '.name' "$DATAWAVE_STACK/Chart.yaml") || exit 1
+    chart_version=$(yq eval -r '.version' "$DATAWAVE_STACK/Chart.yaml") || exit 1
+    HELM_CHART="$LOCAL_CHART_WORKDIR/$chart_name-$chart_version.tgz"
   fi
 }
 
@@ -55,23 +67,20 @@ package_helm_dependencies() {
     local base_dir="$1"
     local chart_file="$base_dir"/Chart.yaml
 
-    local dependencies=$(yq eval '.dependencies[]' "$chart_file")
-    if [ -z "$dependencies" ]; then
-        return
-    fi
-
-    for dep in $(yq eval '.dependencies[].name' "$chart_file"); do
-        local dep_path=$(yq eval ".dependencies[] | select(.name == \"$dep\") | .path" "$chart_file")
+    local dependencies dep dep_path
+    dependencies=$(yq eval -r '.dependencies // [] | .[].name' "$chart_file") || return 1
+    for dep in $dependencies; do
+        dep_path=$(yq eval -r ".dependencies[] | select(.name == \"$dep\") | .path // \"\"" "$chart_file") || return 1
         if [ -n "$dep_path" ]; then
             echo "Packaging dependency: $dep"
-            package_helm_dependencies "$base_dir/$dep_path"
+            package_helm_dependencies "$base_dir/$dep_path" || return 1
             
             # Package the dependency and copy it to the charts directory
-            helm package "$base_dir/$dep_path"
-            mkdir -p "$base_dir/charts"
-            mv *.tgz "$base_dir/charts/"
+            mkdir -p "$base_dir/charts" || return 1
+            helm package "$base_dir/$dep_path" --destination "$base_dir/charts" || return 1
         else
-            echo "Dependency $dep in $chart_file has no local path specified."
+            echo "ERROR: Dependency $dep in $chart_file has no local path specified."
+            return 1
         fi
     done
 }
@@ -234,7 +243,7 @@ function ghcr_login() {
   echo "Logging in to GHCR for docker and helm"
   if test -f "${BASEDIR}"/ghcr-image-pull-secret.yaml; then
     # File path
-    FILE_PATH="./ghcr-image-pull-secret.yaml"
+    FILE_PATH="${BASEDIR}/ghcr-image-pull-secret.yaml"
 
     # Extract the base64-encoded .dockerconfigjson value
     ENCODED_JSON=$(grep '.dockerconfigjson:' $FILE_PATH | awk '{print $2}')
@@ -305,9 +314,13 @@ function configure_etc_hosts(){
 }
 
 function setup_mysql_operator() {
-  helm repo add mysql-operator https://mysql.github.io/mysql-operator/
-  helm repo update
-  helm install dwv mysql-operator/mysql-operator    --namespace $NAMESPACE --create-namespace
+  # The operator chart rejects the default namespace. Keep its release separate
+  # from DataWave so deploying or upgrading dwv cannot replace the operator.
+  helm repo add mysql-operator https://mysql.github.io/mysql-operator/ || return 1
+  helm repo update mysql-operator || return 1
+  helm upgrade --install dwv-mysql-operator mysql-operator/mysql-operator \
+    --version "$MYSQL_OPERATOR_CHART_VERSION" \
+    --namespace mysql-operator --create-namespace --wait --timeout 5m0s || return 1
 }
 
 function helm_install() {
@@ -316,8 +329,17 @@ function helm_install() {
 
   echo "Starting Helm Deployment"
 
+  local values_args=(-f "${values_file:-$DATAWAVE_STACK/values.yaml}")
+  if [ -n "$DATAWAVE_VALUES_OVERLAY" ]; then
+    if [ ! -f "$DATAWAVE_VALUES_OVERLAY" ]; then
+      echo "ERROR: Values overlay does not exist: $DATAWAVE_VALUES_OVERLAY"
+      exit 1
+    fi
+    values_args+=(-f "$DATAWAVE_VALUES_OVERLAY")
+  fi
+
   # shellcheck disable=SC2086
-  helm -n $NAMESPACE upgrade --install dwv ${HELM_CHART} -f ${values_file:-$DATAWAVE_STACK/values.yaml} ${EXTRA_HELM_ARGS} --wait --timeout 15m0s
+  helm -n "$NAMESPACE" upgrade --install dwv "$HELM_CHART" "${values_args[@]}" ${EXTRA_HELM_ARGS} --wait --timeout 15m0s
   if [ $? -eq 0 ]; then
     echo "Helm install successful."
   else
@@ -347,7 +369,10 @@ fi
 configure_repository_credentials
 ghcr_login
 create_secrets
-setup_mysql_operator
+if ! setup_mysql_operator; then
+  echo "MySQL Operator setup failed. Resolve the error before deploying DataWave."
+  exit 1
+fi
 
 helm_install
 

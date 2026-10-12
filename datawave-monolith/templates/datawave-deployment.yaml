@@ -55,6 +55,8 @@ spec:
     metadata:
       labels:
         application: "{{ .Values.datawaveDeployment.meta.name }}"
+      annotations:
+        checksum/runtime-config: {{ include (print $.Template.BasePath "/datawave-runtime-config-map.yaml") . | sha256sum }}
 
     #######################################
     # Deployment Resources Specifications #
@@ -103,6 +105,17 @@ spec:
           image: "{{ .Values.datawaveDeployment.image.name }}:{{ .Values.datawaveDeployment.image.tag }}"
           {{- end }}
           imagePullPolicy: "{{ .Values.datawaveDeployment.image.pullPolicy }}"
+          {{- $startup := .Values.datawaveDeployment.startupProbe | default dict }}
+          {{- if dig "enabled" true $startup }}
+          startupProbe:
+            httpGet:
+              path: {{ .Values.datawaveDeployment.readinessProbe.uri | quote }}
+              port: {{ .Values.datawaveDeployment.readinessProbe.port }}
+              scheme: {{ .Values.datawaveDeployment.readinessProbe.scheme | quote }}
+            periodSeconds: {{ $startup.periodSeconds | default 5 }}
+            failureThreshold: {{ $startup.failureThreshold | default 120 }}
+            timeoutSeconds: {{ $startup.timeoutSeconds | default 5 }}
+          {{- end }}
           livenessProbe:
             httpGet:
               path: "{{ .Values.datawaveDeployment.livenessProbe.uri }}"
@@ -126,6 +139,18 @@ spec:
           {{- end }}
           resources: {}
           env:
+            {{- if .Values.cachedResults.enabled }}
+            - name: CACHED_RESULTS_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.cachedResults.credentials.secretName | quote }}
+                  key: {{ .Values.cachedResults.credentials.usernameKey | quote }}
+            - name: CACHED_RESULTS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.cachedResults.credentials.secretName | quote }}
+                  key: {{ .Values.cachedResults.credentials.passwordKey | quote }}
+            {{- end }}
             - name: ACCUMULO_PASSWORD
               value: {{ .Values.global.accumulo.password }} 
             - name: HADOOP_CLASSPATH

@@ -114,6 +114,26 @@
                 },
                 "restartPolicy": {
                     "type": "string"
+                },
+                "startupProbe": {
+                    "type": "object",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean"
+                        },
+                        "periodSeconds": {
+                            "type": "integer",
+                            "minimum": 1
+                        },
+                        "failureThreshold": {
+                            "type": "integer",
+                            "minimum": 1
+                        },
+                        "timeoutSeconds": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    }
                 }
             },
             "type": "object"
@@ -260,6 +280,39 @@
                 }
             },
             "type": "object"
+        },
+        "cachedResults": {
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "type": "boolean"
+                },
+                "host": {
+                    "type": "string"
+                },
+                "port": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 65535
+                },
+                "database": {
+                    "type": "string"
+                },
+                "credentials": {
+                    "type": "object",
+                    "properties": {
+                        "secretName": {
+                            "type": "string"
+                        },
+                        "usernameKey": {
+                            "type": "string"
+                        },
+                        "passwordKey": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
         }
     },
     "title": "Helm Values Schema",

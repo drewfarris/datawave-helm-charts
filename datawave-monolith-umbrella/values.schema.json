@@ -67,6 +67,19 @@
                 }
             },
             "type": "object"
+        },
+        "dwv-web": {
+            "type": "object",
+            "properties": {
+                "cachedResults": {
+                    "type": "object",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean"
+                        }
+                    }
+                }
+            }
         }
     },
     "title": "Helm Values Schema",
