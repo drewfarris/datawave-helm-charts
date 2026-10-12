@@ -15,14 +15,20 @@ mock:
       '[cn=test a. user, ou=example developers, o=example corp, c=us<cn=example corp ca, o=example corp, c=us>]':
         roles-to-auths:
           Administrator: DW_ADMIN
-          AuthorizedUser: DW_USER
+          AuthorizedUser: AUTH_USER
           JBossAdministrator: JBOSS_ADMIN
           PrivateRole: PRIVATE
           PublicRole: PUBLIC
+          {{- range $role, $auth := .Values.mockAuthorization.additionalRolesToAuths }}
+          {{ $role }}: {{ $auth | quote }}
+          {{- end }}
       '[cn=testserver.example.com, ou=servers, o=example corp, c=us<cn=example corp ca, o=example corp, c=us>]':
         roles-to-auths:
           AuthorizedServer: DW_SERV
           PublicRole: PUBLIC
+          {{- range $role, $auth := .Values.mockAuthorization.additionalRolesToAuths }}
+          {{ $role }}: {{ $auth | quote }}
+          {{- end }}
           PrivateRole: PRIVATE
     server-DN-regex: '.*notused.*'
 server:

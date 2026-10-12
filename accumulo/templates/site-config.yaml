@@ -99,6 +99,9 @@ data:
       '-Djava.net.preferIPv4Stack=true'
       "-Daccumulo.native.lib.path=${lib}/native"
       "${accumulo_initial_opts[@]}"
+      {{- range .Values.javaOptions }}
+      {{ . | quote }}
+      {{- end }}
     )
     
     ## Make sure Accumulo native libraries are built since they are enabled by default

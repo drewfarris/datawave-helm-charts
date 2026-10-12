@@ -434,6 +434,13 @@
                 }
             },
             "type": "object"
+        },
+        "javaOptions": {
+            "type": "array",
+            "items": {
+                "type": "string",
+                "minLength": 1
+            }
         }
     },
     "title": "Helm Values Schema",
