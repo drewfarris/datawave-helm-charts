@@ -1,0 +1,11 @@
+# helm upgrade --install annotation-writer ./annotation -f annotation/examples/writer-values.yaml
+role: writer
+meta:
+  name: annotation-writer
+replication:
+  replicaCount: 1
+ingress:
+  enabled: false
+# Management remains available through the internal Service and pod probes.
+# The annotation cache init dependency is omitted in writer mode; authorization remains for management security.
+# Configure enabled backends, stable consumer groups, concurrency, and persistence storage in Config Server.

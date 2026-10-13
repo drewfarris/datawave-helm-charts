@@ -27,6 +27,10 @@ image:
   pullPolicy: IfNotPresent
   tag: 1.0.0-SNAPSHOT
 
+# Select combined (backward-compatible default), api, or writer.
+# Install separate releases with distinct meta.name values to scale API and writers independently.
+role: combined
+
 env:
   - name: JAVA_TOOL_OPTIONS
     value: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5011"

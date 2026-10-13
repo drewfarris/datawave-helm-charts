@@ -1,4 +1,17 @@
-{{- include "common-service-library.deployment" (list . "annotation.deployment") -}}
+{{- $role := default "combined" .Values.role -}}
+{{- if not (has $role (list "combined" "api" "writer")) -}}
+{{- fail "annotation role must be combined, api, or writer" -}}
+{{- end -}}
+{{- $context := deepCopy . -}}
+{{- $env := list -}}
+{{- range .Values.env -}}
+{{- if ne .name "ANNOTATION_ROLE" -}}
+{{- $env = append $env . -}}
+{{- end -}}
+{{- end -}}
+{{- $env = append $env (dict "name" "ANNOTATION_ROLE" "value" $role) -}}
+{{- $_ := set $context.Values "env" $env -}}
+{{- include "common-service-library.deployment" (list $context "annotation.deployment") -}}
 {{- define "annotation.deployment" -}}
 spec:
   template:
@@ -7,6 +20,7 @@ spec:
         - name: "{{ .Chart.Name }}-init-configuration"
           image: "{{ .Values.global.initialization.image.name }}:{{ .Values.global.initialization.image.tag }}"
           command: [ "sh", "-c", "until nslookup {{ .Values.global.serviceDns.configuration.name }}; do echo 'Waiting for Configuration...'; sleep 2; done" ]
+        {{- if ne .Values.role "writer" }}
         - name: "{{ .Chart.Name }}-init-annotation-cache"
           image: "{{ .Values.global.initialization.image.name }}:{{ .Values.global.initialization.image.tag }}"
           command:
@@ -17,13 +31,14 @@ spec:
                 echo "Waiting for {{ .Values.dependencies.annotationCache.name }} to be ready..."
                 sleep 2
               done
+        {{- end }}
         - name: "{{ .Chart.Name }}-init-authorization"
           image: "{{ .Values.global.initialization.image.name }}:{{ .Values.global.initialization.image.tag }}"
           command:
             - "sh"
             - "-c"
             - >
-              until wget --spider -q http://{{ .Values.dependencies.authorization.service }}:{{ .Values.dependencies.authorization.port }}/{{ .Values.dependencies.authorization.service }}/{{ .Values.dependencies.annotationCache.path }}; do
+              until wget --spider -q http://{{ .Values.dependencies.authorization.service }}:{{ .Values.dependencies.authorization.port }}/{{ .Values.dependencies.authorization.service }}/{{ .Values.dependencies.authorization.path }}; do
                 echo "Waiting for {{ .Values.dependencies.authorization.name }} to be ready..."
                 sleep 2
               done
