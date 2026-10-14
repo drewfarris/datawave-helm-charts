@@ -28,6 +28,8 @@ image:
   tag: 1.0.0-SNAPSHOT
 
 # Select combined (backward-compatible default), api, or writer.
+# API/writer roles prepend annotation-api / annotation-writer to the active Spring profiles.
+# Config Server must contain the corresponding annotation-annotation-*.yml overlays.
 # Install separate releases with distinct meta.name values to scale API and writers independently.
 role: combined
 

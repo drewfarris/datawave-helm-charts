@@ -45,6 +45,8 @@ mock:
           AuthorizedUser: DW_USER
           AuthorizedServer: DW_SERV
           MetricsAdministrator: METRICS_ADMIN
+          # The deployment-test certificate may write annotations using its existing PUBLIC authorization.
+          AnnotationWriter: PUBLIC
           JBossAdministrator: JBOSS_ADMIN
           Administrator: DW_ADMIN
           FooRole: FOO

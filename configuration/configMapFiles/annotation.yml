@@ -40,6 +40,9 @@ spring:
     deserialization:
       fail-on-unknown-properties: false
 annotation:
+  # The packaged default is combined. Leave role unset in shared remote configuration
+  # so annotation-api / annotation-writer profile overlays select the deployment role.
+  # role: combined
   health:
     rabbit:
       enabled: true
@@ -121,9 +124,11 @@ annotation:
         username: '{{ .Values.global.accumulo.user }}'
         password: '{{ .Values.global.accumulo.password }}'
     file:
+      # Direct REST publish-failure fallback; absent in writer-only deployments.
       enabled: true
       pathUri: 'file:///annotation'
     dump:
+      # Queue-driven file output in writer/combined mode; provision the dump queue separately.
       enabled: false
       pathUri: 'file:///annotation-dump'
 

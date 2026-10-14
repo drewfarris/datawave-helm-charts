@@ -7,5 +7,6 @@ replication:
 ingress:
   enabled: false
 # Management remains available through the internal Service and pod probes.
+# The chart activates annotation-writer; annotation-annotation-writer.yml selects annotation.role=writer.
 # The annotation cache init dependency is omitted in writer mode; authorization remains for management security.
 # Configure enabled backends, stable consumer groups, concurrency, and persistence storage in Config Server.

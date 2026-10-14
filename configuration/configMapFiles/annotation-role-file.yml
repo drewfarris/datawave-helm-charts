@@ -1,0 +1,21 @@
+# Add role-file after role-test to exercise a file-only queue writer.
+spring:
+  cloud:
+    stream:
+      rabbit:
+        bindings:
+          dumpAnnotationSink-in-0:
+            consumer:
+              # Provision only the isolated test queue; normal dump config keeps bindQueue: false.
+              bindQueue: true
+      bindings:
+        dumpAnnotationSink-in-0:
+          consumer:
+            concurrency: 1
+annotation:
+  writers:
+    accumulo:
+      enabled: false
+    dump:
+      enabled: true
+      pathUri: file:///logs/annotation-role-dump

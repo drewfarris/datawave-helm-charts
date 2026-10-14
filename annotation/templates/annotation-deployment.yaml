@@ -3,14 +3,42 @@
 {{- fail "annotation role must be combined, api, or writer" -}}
 {{- end -}}
 {{- $context := deepCopy . -}}
-{{- $env := list -}}
 {{- range .Values.env -}}
-{{- if ne .name "ANNOTATION_ROLE" -}}
-{{- $env = append $env . -}}
+{{- if eq .name "ANNOTATION_ROLE" -}}
+{{- fail "Use annotation role and its Config Server profile instead of ANNOTATION_ROLE" -}}
 {{- end -}}
 {{- end -}}
-{{- $env = append $env (dict "name" "ANNOTATION_ROLE" "value" $role) -}}
-{{- $_ := set $context.Values "env" $env -}}
+{{- $profiles := list -}}
+{{- $args := list -}}
+{{- $profileArgs := 0 -}}
+{{- range .Values.args -}}
+{{- if hasPrefix "--spring.profiles.active=" . -}}
+{{- $profileArgs = add1 $profileArgs -}}
+{{- range splitList "," (trimPrefix "--spring.profiles.active=" .) -}}
+{{- $profile := trim . -}}
+{{- if has $profile (list "annotation-api" "annotation-writer") -}}
+{{- if ne $profile (printf "annotation-%s" $role) -}}
+{{- fail "annotation role must match the annotation-api or annotation-writer profile" -}}
+{{- end -}}
+{{- else if $profile -}}
+{{- $profiles = append $profiles $profile -}}
+{{- end -}}
+{{- end -}}
+{{- else -}}
+{{- $args = append $args . -}}
+{{- end -}}
+{{- end -}}
+{{- if gt (int $profileArgs) 1 -}}
+{{- fail "Specify spring.profiles.active only once in annotation args" -}}
+{{- end -}}
+{{- if ne $role "combined" -}}
+{{- /* Put the role first so later environment/backend profiles can override its defaults. */ -}}
+{{- $profiles = prepend $profiles (printf "annotation-%s" $role) -}}
+{{- end -}}
+{{- if $profiles -}}
+{{- $args = append $args (printf "--spring.profiles.active=%s" (join "," (uniq $profiles))) -}}
+{{- end -}}
+{{- $_ := set $context.Values "args" $args -}}
 {{- include "common-service-library.deployment" (list $context "annotation.deployment") -}}
 {{- define "annotation.deployment" -}}
 spec:

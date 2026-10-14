@@ -1,0 +1,74 @@
+# Explicitly opt in with the role-test profile for annotation integration tests.
+# Reuse the system Config Server and authorization service; keep test writes isolated.
+spring:
+  cache:
+    type: simple
+  cloud:
+    stream:
+      bindings:
+        annotationSource-out-0:
+          destination: annotation-role-test-20261013
+        logAnnotationSink-in-0:
+          destination: annotation-role-test-20261013
+        accumuloAnnotationSink-in-0:
+          destination: annotation-role-test-20261013
+          consumer:
+            concurrency: 1
+        dumpAnnotationSink-in-0:
+          destination: annotation-role-test-20261013
+
+hazelcast:
+  client:
+    enabled: false
+
+annotation:
+  # Do not set role here; annotation-api / annotation-writer overlays select it.
+  truthmark-table-name: annotationRoleTest20261013
+  truthmark-source-table-name: annotationRoleTestSource20261013
+  annotation-ack-timeout-millis: 2000
+  retry:
+    max-attempts: 1
+    backoff-interval-millis: 100
+    fail-timeout-millis: 3000
+  writers:
+    file:
+      enabled: false
+    accumulo:
+      truthmark-table-name: annotationRoleTest20261013
+      truthmark-source-table-name: annotationRoleTestSource20261013
+  health:
+    rabbit:
+      queues:
+        - name: annotation-role-test-20261013.accumulo
+          durable: true
+          exclusive: false
+          autoDelete: false
+          arguments:
+            x-dead-letter-exchange: DLX
+            x-dead-letter-routing-key: annotation-role-test-20261013.accumulo
+        - name: annotation-role-test-20261013.accumulo.dlq
+          durable: true
+          exclusive: false
+          autoDelete: false
+      exchanges:
+        - name: annotation-role-test-20261013
+          type: topic
+          durable: true
+          autoDelete: false
+          internal: false
+          delayed: false
+        - name: DLX
+          type: direct
+          durable: true
+          autoDelete: false
+          internal: false
+          delayed: false
+      bindings:
+        - destination: annotation-role-test-20261013.accumulo
+          destinationType: queue
+          source: annotation-role-test-20261013
+          routingKey: '#'
+        - destination: annotation-role-test-20261013.accumulo.dlq
+          destinationType: queue
+          source: DLX
+          routingKey: annotation-role-test-20261013.accumulo

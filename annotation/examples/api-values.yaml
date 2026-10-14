@@ -6,7 +6,7 @@ replication:
   replicaCount: 3
 ingress:
   enabled: true
-# The chart supplies ANNOTATION_ROLE; shared Config Server configuration leaves annotation.role unset.
+# The chart activates annotation-api; annotation-annotation-api.yml selects annotation.role=api.
 # Both pools keep spring.application.name=annotation and use the same messaging destinations.
-# Disable annotation.writers.file.enabled in API configuration for broker-only write acceptance,
-# or provide persistent per-replica file fallback storage and replay operations.
+# The API overlay disables direct file fallback for broker-only acceptance by default.
+# Override only with persistent per-replica fallback storage and replay operations.

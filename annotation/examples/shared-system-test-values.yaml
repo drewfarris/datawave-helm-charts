@@ -1,0 +1,11 @@
+# Apply after api-values.yaml or writer-values.yaml for opt-in integration testing.
+# The system Config Server must include configuration/configMapFiles/annotation-role-test.yml.
+global:
+  serviceDns:
+    configuration:
+      name: configuration
+args:
+  - "--spring.output.ansi.enabled=NEVER"
+  - "--spring.profiles.active=default,k8s,remoteauth,log-disabled,role-test"
+ingress:
+  enabled: false
