@@ -1,0 +1,113 @@
+# Disposable lab: serialized initialization; initially no server processes.
+global:
+  pullSecrets: []
+  hdfs:
+    namenode: hdfs-nn.default.svc.cluster.local:9000
+  accumulo:
+    instanceName: floci-lab
+    zookeepers: zookeeper.default.svc.cluster.local:2181
+image:
+  repository: local/datawave/accumulo-s3a
+  tag: 2.1.4-hadoop3.4.1
+  pullPolicy: Never
+hdfs:
+  namenode:
+    hostname: hdfs-nn.default.svc.cluster.local
+  volumes:
+  - /accumulo-s3-lab
+  postInstallCommands: []
+zookeeper:
+  externalHosts: zookeeper.default.svc.cluster.local
+initialization:
+  auto: false
+storage:
+  hdfsDirectory: /accumulo-s3-lab
+  volumes:
+  - hdfs://hdfs-nn.default.svc.cluster.local:9000/accumulo-s3-lab
+javaOptions:
+- -Dcom.google.protobuf.use_unsafe_pre22_gencode=true
+- -Xmx256m
+- -Xms64m
+manager:
+  replicaCount: 0
+  nodeSelector: &id001
+    kubernetes.io/hostname: minikube-m03
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      memory: 768Mi
+tabletServers:
+  replicaCount: 0
+  nodeSelector: *id001
+  affinity: {}
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      memory: 1Gi
+gc:
+  replicaCount: 0
+  nodeSelector: *id001
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      memory: 512Mi
+monitor:
+  replicaCount: 0
+  ingress:
+    enabled: false
+coordinator:
+  replicaCount: 0
+compactors:
+  queues: []
+scanServers:
+  resourceGroups: []
+cmds:
+  enabled: false
+logging:
+  shellRootLevel: warn
+  shellAccumuloLevel: warn
+  serviceRootLevel: warn
+  serviceAccumuloLevel: info
+config:
+  accumuloSite:
+    instance.secret: floci-lab-local-only
+    general.volume.chooser: org.apache.accumulo.core.spi.fs.PreferredVolumeChooser
+    general.custom.volume.preferred.default: hdfs://hdfs-nn.default.svc.cluster.local:9000/accumulo-s3-lab
+    general.custom.volume.preferred.init: hdfs://hdfs-nn.default.svc.cluster.local:9000/accumulo-s3-lab
+    general.custom.volume.preferred.logger: hdfs://hdfs-nn.default.svc.cluster.local:9000/accumulo-s3-lab
+    table.class.loader.context: ''
+extraVolumes:
+- name: floci-credentials
+  secret:
+    secretName: floci-s3a-credentials
+    items:
+    - key: floci.jceks
+      path: floci.jceks
+- name: lab-probe
+  configMap:
+    name: floci-lab-bootstrap
+extraVolumeMounts:
+- name: floci-credentials
+  mountPath: /etc/hadoop/credentials
+  readOnly: true
+- name: lab-probe
+  mountPath: /probe
+  readOnly: true
+extraEnv:
+- name: HADOOP_CREDSTORE_PASSWORD
+  valueFrom:
+    secretKeyRef:
+      name: floci-s3a-credentials
+      key: store-password
+- name: CLASSPATH
+  value: /probe/lab-probe.jar
+initContainer:
+  image: local/datawave/accumulo-s3a
+  tag: 2.1.4-hadoop3.4.1
+  pullPolicy: Never

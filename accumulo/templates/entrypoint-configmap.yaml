@@ -6,7 +6,7 @@ data:
   entrypoint.sh: |
     #!/bin/bash
     test -z "${ACCUMULO_INSTANCE_NAME}" && ACCUMULO_INSTANCE_NAME="dev"
-    if [ "$1" = "accumulo" ] && { [ "$2" = "master" ] || [ "$2" = "manager" ]; }; then
+    if {{ .Values.initialization.auto }} && [ "$1" = "accumulo" ] && { [ "$2" = "master" ] || [ "$2" = "manager" ]; }; then
     	# Try to find desired root password from trace config
     	TRACE_USER=root
     	CLIENT_USERNAME=root
@@ -22,13 +22,14 @@ data:
     	fi
     
     	# If possible, wait until all the HDFS instances that Accumulo will be using are available i.e. not in Safe Mode and directory is writeable
-    	ACCUMULO_VOLUMES="hdfs://{{ .Values.global.hdfs.namenode }}/accumulo"
+        ACCUMULO_VOLUMES="{{ include "accumulo.volumes" . }}"
     	if [ ! -z "${ACCUMULO_VOLUMES}" ]; then
     		
     		until [ "${ALL_VOLUMES_READY}" == "true" ] || [ $(( ATTEMPTS++ )) -gt 6 ]; do
     			echo "$(date) - Waiting for all HDFS instances to be ready..."
     			ALL_VOLUMES_READY="true"
     			for ACCUMULO_VOLUME in ${ACCUMULO_VOLUMES//,/ }; do
+                    case "${ACCUMULO_VOLUME}" in hdfs://*) ;; *) continue ;; esac
     				SAFE_MODE_CHECK="OFF"
     				SAFE_MODE_CHECK_OUTPUT=$(hdfs dfsadmin -safemode get)
     				echo ${SAFE_MODE_CHECK_OUTPUT} | grep -q "Safe mode is OFF"

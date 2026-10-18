@@ -43,6 +43,9 @@ spec:
           {{- include "accumulo.volumeMount" $.Values.global.volumes.accumulo | nindent 10 }}
       {{- end }}
       volumes:
+        {{- with $.Values.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
         {{- include "accumulo.volume" $.Values.global.volumes.hadoop | nindent 8 }}
         {{- include "accumulo.volume" $.Values.global.volumes.accumulo | nindent 8 }}
       hostname: accumulo-compaction-coordinator
@@ -53,8 +56,15 @@ spec:
         command: ["/bin/bash", "-c"]
         args: ["accumulo compaction-coordinator -a $(hostname -f)" ]
         volumeMounts:
+          {{- with $.Values.extraVolumeMounts }}
+          {{- toYaml . | nindent 10 }}
+          {{- end }}
+          {{- include "accumulo.volumeMount" $.Values.global.volumes.hadoop | nindent 10 }}
           {{- include "accumulo.volumeMount" $.Values.global.volumes.accumulo | nindent 10 }}
         env:
+        {{- with $.Values.extraEnv }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
         - name: HADOOP_CONF_DIR
           value: {{ $.Values.global.volumes.hadoop.destination }}
         - name: HADOOP_CLASSPATH

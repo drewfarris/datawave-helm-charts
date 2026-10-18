@@ -20,7 +20,7 @@ metadata:
     {{- include "accumulo.labels" . | nindent 4 }}
     app.kubernetes.io/component: manager
 spec:
-  replicas: 1
+  replicas: {{ .Values.manager.replicaCount }}
   selector:
     matchLabels:
       {{- include "accumulo.selectorLabels" . | nindent 6 }}
@@ -41,9 +41,13 @@ spec:
         securityContext:
           runAsUser: 1000
         image: busybox:1.28
-        command: ['sh', '-c', "until nslookup hdfs-nn; do echo waiting for hdfs; sleep 2; done"]
+        command: ['sh', '-c', "until nslookup {{ .Values.hdfs.namenode.hostname }}; do echo waiting for hdfs; sleep 2; done"]
       - name: check-hadoop-jars
         image: "{{ .Values.initContainer.image }}:{{ .Values.initContainer.tag }}"
+        imagePullPolicy: {{ .Values.initContainer.pullPolicy }}
+        env:
+        - name: HADOOP_CLASSPATH
+          value: {{ .Values.hadoop.classpath | quote }}
         securityContext:
           runAsUser: 1000
         command: 
@@ -59,6 +63,9 @@ spec:
         ports:
           - containerPort: 9999
         env:
+        {{- with $.Values.extraEnv }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
         - name: HADOOP_CONF_DIR
           value: {{ $.Values.global.volumes.hadoop.destination }}
         - name: ACCUMULO_CONF_DIR
@@ -70,6 +77,9 @@ spec:
         - name: ACCUMULO_ROOT_PASSWORD
           value: {{ .Values.config.userManagement.rootPassword }}
         volumeMounts:
+          {{- with $.Values.extraVolumeMounts }}
+          {{- toYaml . | nindent 10 }}
+          {{- end }}
           {{- include "accumulo.volumeMount" $.Values.global.volumes.hadoop | nindent 10 }}
           {{- include "accumulo.volumeMount" $.Values.global.volumes.accumulo | nindent 10 }}
           - name: cmds
@@ -81,6 +91,9 @@ spec:
         resources:
           {{- toYaml .Values.manager.resources | nindent 10 }}
       volumes:
+        {{- with $.Values.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
         - name: entrypoint
           configMap:
             name: {{ .Values.entrypointConfigMap.name }}

@@ -104,3 +104,13 @@ Create the name of the service account to use
     name: {{ .source.name }}
   {{- end }}
 {{- end }}
+{{/* Render one effective volume list, preserving the legacy map override. */}}
+{{- define "accumulo.volumes" -}}
+{{- if .Values.storage.volumes -}}
+{{- join "," .Values.storage.volumes -}}
+{{- else if hasKey .Values.config.accumuloSite "instance.volumes" -}}
+{{- index .Values.config.accumuloSite "instance.volumes" -}}
+{{- else -}}
+{{- printf "hdfs://%s%s" .Values.global.hdfs.namenode .Values.storage.hdfsDirectory -}}
+{{- end -}}
+{{- end -}}

@@ -88,6 +88,7 @@ config:
               - WRITE
   postInstallCommands: []
 initContainer:
+  pullPolicy: IfNotPresent
   image: ghcr.io/nationalsecurityagency/datawave-stack-hadoop
   tag: 3.4.1
 image:
@@ -96,6 +97,7 @@ image:
   
   pullPolicy: IfNotPresent
 manager:
+  replicaCount: 1
   resources: {}
   nodeSelector: {}
   tolerations: []
@@ -148,6 +150,7 @@ coordinator:
   tolerations: []
   affinity: {}
 cmds:
+  enabled: true
   resources: {}
   nodeSelector: {}
   tolerations: []
@@ -165,3 +168,17 @@ monitor:
     # For Traefik:
     #pathPrefix: /accumulo/
     # For Nginx:
+# Optional scoped credentials/configuration mounts, applied to every main JVM.
+extraVolumes: []
+extraVolumeMounts: []
+
+# Keep automatic initialization for existing HDFS-only deployments.
+# Hybrid labs use a serialized bootstrap Job and disable automatic initialization.
+initialization:
+  auto: true
+storage:
+  hdfsDirectory: /accumulo
+  volumes: []
+
+# Optional environment entries for scoped credentials (never literal secrets).
+extraEnv: []

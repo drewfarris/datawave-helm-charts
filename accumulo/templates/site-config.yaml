@@ -171,24 +171,46 @@ data:
 
   accumulo.properties: |
     ## Sets location in HDFS where Accumulo will store data
-    instance.volumes=hdfs://{{ .Values.global.hdfs.namenode }}/accumulo
+    instance.volumes={{ include "accumulo.volumes" . }}
     
     ## Sets location of Zookeepers
+    {{- if not (hasKey .Values.config.accumuloSite "instance.zookeeper.host") }}
     instance.zookeeper.host={{ .Values.global.accumulo.zookeepers }}
+    {{- end }}
     
     ## Change secret before initialization. All Accumulo servers must have same secret
+    {{- if not (hasKey .Values.config.accumuloSite "instance.secret") }}
     instance.secret=DEFAULT
+    {{- end }}
+    {{- if not (hasKey .Values.config.accumuloSite "trace.user") }}
     trace.user=root
+    {{- end }}
+    {{- if not (hasKey .Values.config.accumuloSite "trace.token.property.password") }}
     trace.token.property.password=secret
+    {{- end }}
     
     ## Set to false if 'accumulo-util build-native' fails
+    {{- if not (hasKey .Values.config.accumuloSite "tserver.memory.maps.native.enabled") }}
     tserver.memory.maps.native.enabled=true
+    {{- end }}
+    {{- if not (hasKey .Values.config.accumuloSite "tserver.memory.maps.max") }}
     tserver.memory.maps.max=128M
+    {{- end }}
+    {{- if not (hasKey .Values.config.accumuloSite "tserver.cache.data.size") }}
     tserver.cache.data.size=15M
+    {{- end }}
+    {{- if not (hasKey .Values.config.accumuloSite "tserver.cache.index.size") }}
     tserver.cache.index.size=40M
+    {{- end }}
+    {{- if not (hasKey .Values.config.accumuloSite "tserver.total.mutation.queue.max") }}
     tserver.total.mutation.queue.max=16M
+    {{- end }}
+    {{- if not (hasKey .Values.config.accumuloSite "tserver.sort.buffer.size") }}
     tserver.sort.buffer.size=50M
+    {{- end }}
+    {{- if not (hasKey .Values.config.accumuloSite "tserver.walog.max.size") }}
     tserver.walog.max.size=128M
+    {{- end }}
 
     #enable external compactions
     {{ range .Values.compactors.queues }}
@@ -196,15 +218,28 @@ data:
     tserver.compaction.major.service.{{ .serviceName }}.planner.opts.executors={{ .jsonConfig }}
     {{- end }}
     
+    {{- if not (hasKey .Values.config.accumuloSite "general.classpaths") }}
     general.classpaths=$ACCUMULO_HOME/lib/accumulo-server.jar,$ACCUMULO_HOME/lib/accumulo-core.jar,$ACCUMULO_HOME/lib/accumulo-start.jar,$ACCUMULO_HOME/lib/accumulo-fate.jar,$ACCUMULO_HOME/lib/accumulo-proxy.jar,$ACCUMULO_HOME/lib/[^.].*.jar,$ZOOKEEPER_HOME/lib/zookeeper[^.].*.jar,$HADOOP_CONF_DIR,$HADOOP_HOME/share/hadoop/client/[^.].*.jar,$HADOOP_HOME/share/hadoop/common/lib/(?!slf4j)[^.].*.jar
+    {{- end }}
     
+    {{- if not (hasKey .Values.config.accumuloSite "general.vfs.context.classpath.datawave") }}
     general.vfs.context.classpath.datawave=hdfs://{{ .Values.global.hdfs.namenode }}/datawave/accumulo-vfs-classpath/.*.jar
+    {{- end }}
+    {{- if not (hasKey .Values.config.accumuloSite "table.class.loader.context") }}
     table.class.loader.context=datawave
+    {{- end }}
     
+    {{- if not (hasKey .Values.config.accumuloSite "general.micrometer.enabled") }}
     general.micrometer.enabled=true
+    {{- end }}
+    {{- range $key, $value := .Values.config.accumuloSite }}
+    {{- if ne $key "instance.volumes" }}
+    {{ $key }}={{ $value }}
+    {{- end }}
+    {{- end }}
 
   client.conf: |
-     instance.zookeeper.host=zookeeper:2181
+     instance.zookeeper.host={{ .Values.global.accumulo.zookeepers }}
      # instance.rpc.ssl.enabled=false
      
      # instance.rcp.sasl.enabled=false

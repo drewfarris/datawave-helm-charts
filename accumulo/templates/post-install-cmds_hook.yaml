@@ -1,3 +1,4 @@
+{{- if .Values.cmds.enabled }}
 
 {{- if or .Values.config.userManagement.users .Values.config.postInstallCommands }}
 apiVersion: v1
@@ -66,4 +67,6 @@ spec:
   - name: {{ . }}
   {{- end }}
   {{- end }}
+{{- end }}
+
 {{- end }}
