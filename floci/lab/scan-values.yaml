@@ -1,0 +1,19 @@
+# Optional phase 4 roles; combine with values.yaml and both registered volumes.
+compactors:
+  queues: []
+coordinator:
+  nodeSelector: &id001
+    kubernetes.io/hostname: minikube-m03
+  replicaCount: 0
+  resources: &id002
+    limits:
+      memory: 512Mi
+    requests:
+      cpu: 50m
+      memory: 128Mi
+scanServers:
+  resourceGroups:
+  - nodeSelector: *id001
+    replicaCount: 1
+    resourceGroupName: default
+    resources: *id002

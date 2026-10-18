@@ -1,0 +1,22 @@
+# Optional phase 4 roles; combine with values.yaml and both registered volumes.
+compactors:
+  queues:
+  - compactorQueueName: phase4
+    jsonConfig: '[{"name":"external","type":"external","queue":"phase4"}]'
+    nodeSelector: &id001
+      kubernetes.io/hostname: minikube-m03
+    plannerClass: org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner
+    replicaCount: 1
+    resources: &id002
+      limits:
+        memory: 512Mi
+      requests:
+        cpu: 50m
+        memory: 128Mi
+    serviceName: phase4
+coordinator:
+  nodeSelector: *id001
+  replicaCount: 1
+  resources: *id002
+scanServers:
+  resourceGroups: []

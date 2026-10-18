@@ -4,7 +4,7 @@ import argparse,base64,json,os,re,subprocess,tempfile,time
 from pathlib import Path
 from datetime import datetime,timezone
 import yaml
-p=argparse.ArgumentParser();p.add_argument('--evidence',type=Path,required=True);p.add_argument('--action',choices=['run','activate','park'],default='run');args=p.parse_args()
+p=argparse.ArgumentParser();p.add_argument('--evidence',type=Path,required=True);p.add_argument('--overlay',type=Path,action='append',default=[]);p.add_argument('--action',choices=['run','activate','park'],default='run');args=p.parse_args()
 ROOT=Path(__file__).resolve().parent;CHARTS=ROOT.parents[1];E=args.evidence.resolve();E.mkdir(parents=True,exist_ok=True)
 NS='datawave-s3-lab';RELEASE='floci-lab';HDFS='hdfs://hdfs-nn.default.svc.cluster.local:9000/accumulo-s3-lab';S3='s3a://dwv-accumulo-lab/accumulo';ZK='zookeeper.default.svc.cluster.local:2181';IMAGE='local/datawave/accumulo-s3a:2.1.4-hadoop3.4.1'
 COMMANDS=json.loads((E/'commands.json').read_text()) if (E/'commands.json').exists() else []
@@ -20,6 +20,8 @@ def redact(value):
 
 def run(cmd,name=None,stdin=None,check=True,timeout=300):
  r=subprocess.run(cmd,input=stdin,text=True,capture_output=True,timeout=timeout)
+ # Preserve commands added by a nested phase runner while this process waited.
+ if (E/'commands.json').exists():COMMANDS[:]=json.loads((E/'commands.json').read_text())
  COMMANDS.append({'time':datetime.now(timezone.utc).isoformat(),'command':cmd,'exitCode':r.returncode,'file':name})
  (E/'commands.json').write_text(json.dumps(COMMANDS,indent=2)+'\n')
  if name:
@@ -67,7 +69,11 @@ def pause_original():
  rest=[x for x in targets if x['name'] not in ['datawave-monolith','dwv-dwv-ingest-ingest']]
  run(['kubectl','-n','default','scale',*[x['kind']+'/'+x['name'] for x in rest],'--replicas=0'])
  wait_original(True)
- assert memory('memory-after-pause.txt')>=3,'Less than 3Gi real free node memory; do not start the lab'
+ # A running core lab already consumes its startup reservation. Reconfiguration
+ # needs headroom for a bounded rolling replacement, rather than reserving it twice.
+ active=any(get(kind,name)['spec'].get('replicas',0)>0 for kind,name in [('deployment','accumulo-manager'),('statefulset','accumulo-tservers'),('deployment','accumulo-gc')])
+ required=1 if active else 3
+ assert memory('memory-after-pause.txt')>=required,'Less than '+str(required)+'Gi real free node memory; do not start/reconfigure the lab'
  print('Original compute paused; HDFS/ZooKeeper preserved; lab capacity gate passed.',flush=True)
 
 def prepare():
@@ -109,7 +115,7 @@ def bootstrap():
 
 def switch_lab(active):
  count='1' if active else '0'
- cmd=['helm','upgrade',RELEASE,str(CHARTS/'accumulo'),'-n',NS,'-f',str(ROOT/'values.yaml'),'--set','storage.volumes[0]='+HDFS,'--set','storage.volumes[1]='+S3,'--set','manager.replicaCount='+count,'--set','tabletServers.replicaCount='+count,'--set','gc.replicaCount='+count,'--wait','--timeout','4m']
+ cmd=['helm','upgrade',RELEASE,str(CHARTS/'accumulo'),'-n',NS,'-f',str(ROOT/'values.yaml'),*[item for path in args.overlay for item in ['-f',str(path.resolve())]],'--set','storage.volumes[0]='+HDFS,'--set','storage.volumes[1]='+S3,'--set','manager.replicaCount='+count,'--set','tabletServers.replicaCount='+count,'--set','gc.replicaCount='+count,'--wait','--timeout','4m']
  run(cmd,name='helm-'+('active' if active else 'parked')+'.txt')
  if not active:
   deadline=time.monotonic()+120
@@ -209,6 +215,9 @@ def main():
  if args.action=='activate':
   assert get('job','floci-lab-storage-bootstrap')['status'].get('succeeded'),'Bootstrap must complete first'
   pause_original();switch_lab(True)
+  # Pod Ready does not imply that the Accumulo RPC services have acquired locks.
+  for target,host,port in [('deployment/accumulo-manager','accumulo-manager',9999),('statefulset/accumulo-tservers','accumulo-tservers',9997)]:
+   kube('exec',target,'--','bash','-c','timeout 180 bash -c "until echo >/dev/tcp/'+host+'/'+str(port)+'; do sleep 2; done"',name=host+'-activation-rpc-ready.txt')
   assert 'STATE=REGISTERED' in kube('exec','deployment/accumulo-manager','--','accumulo','local.floci.LabState','floci-lab',ZK,HDFS,S3,name='activation-state.txt').stdout
   print('Lab active; original compute paused. Use --action park to restore it.')
  elif args.action=='park':switch_lab(False);restore_original()

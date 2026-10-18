@@ -1,0 +1,4 @@
+# Apply after the phase 4 lifecycle and recovery gates pass; system/init/WAL preferences stay HDFS.
+config:
+  accumuloSite:
+    general.custom.volume.preferred.default: s3a://dwv-accumulo-lab/accumulo
