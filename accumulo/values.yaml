@@ -103,6 +103,8 @@ manager:
   tolerations: []
   affinity: {}
 tabletServers:
+  # Appended after global options; supports role-specific heap sizing.
+  javaOptions: []
   replicaCount: 3
   resources: {}
   nodeSelector: {}

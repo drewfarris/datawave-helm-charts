@@ -81,6 +81,9 @@
         "credentialsKey": {
           "type": "string",
           "minLength": 1
+        },
+        "sharedConfigMap": {
+          "type": "string"
         }
       }
     },

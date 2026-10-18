@@ -1,0 +1,9 @@
+# DataWave iterators and compaction need more heap than the small phase 4 canary.
+tabletServers:
+  javaOptions: [-Xmx768m, -Xms128m]
+  resources:
+    requests:
+      cpu: 100m
+      memory: 512Mi
+    limits:
+      memory: 1536Mi

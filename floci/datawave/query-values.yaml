@@ -1,0 +1,24 @@
+client:
+  proxiedIssuer: cn=example corp ca, o=example corp, c=us
+  proxiedSubject: cn=test a. user, ou=example developers, o=example corp, c=us
+image:
+  tag: 8.4.0-SNAPSHOT
+  pullPolicy: Never
+nodeSelector:
+  kubernetes.io/hostname: minikube-m03
+prerequisites:
+  ingestionRelease: floci-phase5-ingest
+  requireIngestionJob: true
+  requiredDatasets:
+  - wikipedia
+  - annotation
+  - json
+  - csv
+  - wikipedia-medium
+  - wikipedia-de
+  - wikipedia-es
+  - wikipedia-fr
+  timeoutSeconds: 1200
+runId: phase5
+endpoint:
+  hostPort: web-datawave:8443

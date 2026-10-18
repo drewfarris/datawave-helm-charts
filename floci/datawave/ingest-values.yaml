@@ -1,0 +1,64 @@
+image:
+  repository: local/datawave/ingest-examples-s3a
+  tag: 8.4.0-SNAPSHOT-hadoop3.4.2
+  pullPolicy: Never
+imagePullSecrets: []
+existing:
+  sharedConfigMap: floci-ingest-shared-config
+  sharedConfigClaim: datawave-ingest-config-pvc
+  ingestEnvConfigMap: floci-ingest-env
+  hadoopConfigMap: hadoop-config
+  accumuloConfigMap: accumulo-config
+  gendersConfigMap: floci-ingest-genders
+  credentialsSecret: floci-ingest-credentials
+  credentialsKey: ingest-passwd.sh
+runId: phase5
+job:
+  backoffLimit: 0
+  activeDeadlineSeconds: 3600
+  ttlSecondsAfterFinished: null
+jobCache:
+  directory: /datawave/floci-lab/ingest/work/jobCacheB
+examples:
+  datasets:
+  - wikipedia
+  - annotation
+  - json
+  - csv
+  - wikipedia-medium
+  - wikipedia-de
+  - wikipedia-es
+  - wikipedia-fr
+  numShards: 10
+  hdfsBaseDirectory: /datawave/floci-lab/ingest/examples
+  extraIngestOptions: -useInlineCombiner -ingestMetricsDisabled
+  createTables: true
+  allowExpectedCsvErrors: true
+additionalLibraries: /usr/lib/hadoop/lib/hadoop-aws-3.4.2.jar:/usr/lib/hadoop/lib/bundle-2.29.52.jar:/usr/lib/hadoop/lib/analyticsaccelerator-s3-1.2.1.jar:/usr/lib/hadoop/lib/wildfly-openssl-2.1.4.Final.jar
+resources:
+  requests:
+    cpu: 250m
+    memory: 512Mi
+  limits:
+    memory: 2Gi
+nodeSelector:
+  kubernetes.io/hostname: minikube
+tolerations: []
+affinity: {}
+extraEnv:
+- name: HADOOP_CREDSTORE_PASSWORD
+  valueFrom:
+    secretKeyRef:
+      name: floci-s3a-credentials
+      key: store-password
+extraVolumes:
+- name: floci-credentials
+  secret:
+    secretName: floci-s3a-credentials
+    items:
+    - key: floci.jceks
+      path: floci.jceks
+extraVolumeMounts:
+- name: floci-credentials
+  mountPath: /etc/hadoop/credentials
+  readOnly: true

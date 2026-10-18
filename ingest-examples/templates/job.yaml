@@ -50,6 +50,9 @@ spec:
               value: {{ .Values.additionalLibraries | quote }}
             - name: HADOOP_CONF_DIR
               value: /usr/local/hadoop/conf
+            {{- with .Values.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:
@@ -77,14 +80,22 @@ spec:
               mountPath: /etc/genders
               subPath: genders
               readOnly: true
+            {{- with .Values.extraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
       volumes:
         - name: runner
           configMap:
             name: {{ include "examples.name" . }}-runner
         - name: shared-config
+          {{- if .Values.existing.sharedConfigMap }}
+          configMap:
+            name: {{ .Values.existing.sharedConfigMap | quote }}
+          {{- else }}
           persistentVolumeClaim:
             claimName: {{ .Values.existing.sharedConfigClaim | quote }}
             readOnly: true
+          {{- end }}
         - name: ingest-env
           configMap:
             name: {{ .Values.existing.ingestEnvConfigMap | quote }}
@@ -103,6 +114,9 @@ spec:
         - name: genders
           configMap:
             name: {{ .Values.existing.gendersConfigMap | quote }}
+        {{- with .Values.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

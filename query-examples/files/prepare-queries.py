@@ -89,6 +89,7 @@ def wait_for_reload(tables, before, request=web_request):
                     and current[table].get('lastRefresh') != before[table].get('lastRefresh') for table in tables)
         if ready:
             info('Table cache reload completed: ' + ', '.join(tables))
+            info('Cache refresh evidence: ' + json.dumps({table: {'before': before[table].get('lastRefresh'), 'after': current[table].get('lastRefresh'), 'currentlyRefreshing': current[table].get('currentlyRefreshing')} for table in tables}, sort_keys=True))
             return
         if time.monotonic() >= deadline:
             raise RuntimeError('Timed out waiting for a new completed table-cache refresh: ' + ', '.join(tables))

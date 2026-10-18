@@ -7,6 +7,8 @@ imagePullSecrets:
 
 # These resources belong to the main stack and must exist in this namespace.
 existing:
+  # Optional ConfigMap alternative for isolated configuration snapshots.
+  sharedConfigMap: ""
   sharedConfigClaim: datawave-ingest-config-pvc
   ingestEnvConfigMap: dwv-ingest-ingest-env-configmap
   hadoopConfigMap: hadoop-config
@@ -49,3 +51,7 @@ resources:
 nodeSelector: {}
 tolerations: []
 affinity: {}
+
+extraEnv: []
+extraVolumes: []
+extraVolumeMounts: []

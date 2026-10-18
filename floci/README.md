@@ -127,3 +127,11 @@ keeping the PVC and StorageClass. Keep namespace/Secret/PV metadata and object
 backups when planning an emulator upgrade. Once Accumulo references S3 files,
 keep Floci and its data available until a verified migration removes those
 references; reverting Helm values does not move RFiles.
+
+## DataWave integration
+
+The [DataWave lab runbook](datawave/README.md) covers scoped ingest/query clients,
+actual S3 RFile readers, memory settings, restart diagnostics and the validated
+single-table backup/restore exercise. Its lab uses S3 for user-table files while
+system tables and WALs remain on HDFS. It also documents the shared MySQL
+complete-outage recovery required after the tested Minikube and host restarts.
