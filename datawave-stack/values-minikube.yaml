@@ -1,0 +1,6 @@
+# Keep WildFly off the node that currently hosts most stateful services.
+# This placement targets the primary node of the local three-node Minikube cluster.
+datawave-monolith-umbrella:
+  dwv-web:
+    nodeSelector:
+      kubernetes.io/hostname: minikube

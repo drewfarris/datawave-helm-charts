@@ -101,6 +101,7 @@ spec:
             initialDelaySeconds: {{ .Values.livenessProbe.delaySeconds }}
             periodSeconds: {{ .Values.livenessProbe.periodSeconds }}            
             failureThreshold: {{ .Values.livenessProbe.failureThreshold }}
+            timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds | default 1 }}
           readinessProbe:
             httpGet:
               path: "{{ .Values.readinessProbe.uri }}"
@@ -108,6 +109,7 @@ spec:
               scheme: "{{ .Values.readinessProbe.scheme }}"
             initialDelaySeconds: {{ .Values.readinessProbe.delaySeconds }}
             periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds | default 1 }}
           ports:
           {{- range $i, $value := .Values.ports }}
             - containerPort: {{ $value }}

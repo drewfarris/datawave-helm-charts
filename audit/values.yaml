@@ -34,6 +34,8 @@ args:
 - "--spring.output.ansi.enabled=ALWAYS"
 - "--spring.profiles.active=default,k8s"
 livenessProbe:
+  timeoutSeconds: 5
+  failureThreshold: 6
   delaySeconds: 60
   periodSeconds: 5
   port: 8080
@@ -44,6 +46,7 @@ meta:
 service:
   name: audit-service
 readinessProbe:
+  timeoutSeconds: 5
   delaySeconds: 60
   periodSeconds: 5
   port: 8080

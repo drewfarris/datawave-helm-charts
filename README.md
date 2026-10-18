@@ -36,31 +36,45 @@ Choose `local` chart mode to use changes in this checkout. Local packaging uses 
 temporary copy without existing `.tgz` archives and stops on packaging errors.
 It does not publish charts or images.
 
-`datawave-stack/values-local-images.yaml` is an optional overlay for the locally
-built DataWave 8.2.1-SNAPSHOT ingest and webservice images. It selects ingest tag
-`sandbox-20261011-lang3` and webservice tag `sandbox-20261011` with `IfNotPresent`.
-These tags must exist on every Minikube node before installation:
+The local charts select `local/datawave/ingest-kubernetes:8.4.0-SNAPSHOT` and
+`local/datawave/webservice-kubernetes:8.4.0-SNAPSHOT` with `IfNotPresent`.
+Build both images from the sibling DataWave repository using Java 11, Maven,
+Docker, and RPM tooling:
 
 ```bash
-minikube image load local/datawave/ingest-kubernetes:sandbox-20261011-lang3
-minikube image load local/datawave/webservice-kubernetes:sandbox-20261011
-DATAWAVE_VALUES_OVERLAY="$PWD/datawave-stack/values-local-images.yaml" ./datawave-driver.sh
+cd ../datawave
+mvn -Pkubernetes -Ddeploy -Dtar -DskipTests -DskipITs -Ddocker-release \
+  -Dregistry.namespace=local/ \
+  -pl web-services/deploy/configuration,warehouse/assemble/datawave,web-services/deploy/application \
+  -am install
+cd ../datawave-helm-charts
 ```
 
-At the prompts, choose `local`, use the existing Minikube cluster, select namespace
-`default`, and accept the default base values file. The overlay is applied after
-that file. Reusing an existing cluster skips the driver's Minikube setup and image
-preload; keep its existing ingress, DNS, and CSI storage configuration. Deleting
-Minikube requires loading the images and configuring those prerequisites again.
+Load the images into every Minikube node before deployment:
 
-The ingest image also needs the `lsof` installation change in the separate
-DataWave source repository's `warehouse/assemble/datawave/src/main/docker/Dockerfile`.
-The warehouse Commons Lang dependency must also use the root project version
-(`warehouse/pom.xml`); its older override caused Accumulo launcher failures.
-This chart repository does not build the application images. Default chart values
-still select the published application images; select the overlay to reproduce
-the source-built setup. A full ingest/query round trip is separate from Helm
-readiness and should be checked after installation.
+```bash
+minikube image load local/datawave/ingest-kubernetes:8.4.0-SNAPSHOT
+minikube image load local/datawave/webservice-kubernetes:8.4.0-SNAPSHOT
+./datawave-driver.sh
+```
+
+For the local three-node cluster with 8 GiB per node, keep WildFly on the primary
+node to avoid crowding the stateful services on `minikube-m02`:
+
+```bash
+DATAWAVE_VALUES_OVERLAY="$PWD/datawave-stack/values-minikube.yaml" ./datawave-driver.sh
+```
+
+The ingest build inherits Commons Lang from the root DataWave POM. Keeping an
+older warehouse override can prevent table creation with an Accumulo launcher
+`NoSuchMethodError`.
+
+Choose `local` chart mode to use these image settings. When reusing an existing
+cluster, the driver skips Minikube setup and image loading. The optional
+`datawave-stack/values-local-images.yaml` overlay selects the same image tags
+and adds test authorization roles. Pass its path through `DATAWAVE_VALUES_OVERLAY`
+when those roles are needed. A full ingest/query round trip should be checked
+after installation.
 
 
 
@@ -105,6 +119,24 @@ find * -maxdepth 0 -type d -exec sh -c "cd {}; helm schema" \;
 ```
 
 ## Troubleshooting Datawave
+
+### Recovery after a host reboot
+
+Start the existing cluster with `minikube start`. If worker `kube-proxy` pods
+crash with `fsnotify watcher init: too many open files`, check the Linux host's
+`fs.inotify.max_user_instances`. The default of 128 can be exhausted by this
+three-node Docker cluster. Persist a larger limit on the host:
+
+```bash
+printf 'fs.inotify.max_user_instances = 1024\n' | sudo tee /etc/sysctl.d/90-datawave-minikube.conf
+sudo sysctl -p /etc/sysctl.d/90-datawave-minikube.conf
+```
+
+Restart the failed worker kube-proxy pods after applying the limit. Until they
+recover, worker pods can lose access to cluster DNS and the Kubernetes API,
+which also causes CSI provisioner crashes and stalls application init containers.
+Retry CSI pods still in backoff after service routing is restored. Existing
+volumes and locally loaded images should be preserved.
 
 ### Authorization
 The first thing to check is that certificates trusted by the Datawave stack are being used. This may require adding public certificates to the truststore Datawave utilizes or configuring Datawave with a new truststore that contains the correct certificates.
