@@ -1,0 +1,164 @@
+# Local Minikube defaults. Persistent PVC is retained on Helm uninstall.
+image:
+  repository: docker.io/floci/floci
+  tag: 2.3.0
+  digest: sha256:e0b292df4dc9559b7b1bf4f51bdda4bb8e269276236438cd03cae661260ea8a9
+  pullPolicy: IfNotPresent
+service:
+  port: 4566
+region: us-east-1
+existingSecret: floci-aws-credentials
+persistence:
+  size: 10Gi
+  storageClass: floci-local
+  createStorageClass: true
+nodeSelector:
+  kubernetes.io/hostname: minikube-m03
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: '1'
+    memory: 512Mi
+nativeHeap:
+  initial: 32m
+  maximum: 192m
+disabledServices:
+- accessanalyzer
+- account
+- acm
+- amazonmq
+- apigateway
+- apigatewayv2
+- appconfig
+- appconfigdata
+- appintegrations
+- applicationautoscaling
+- appsync
+- aps
+- athena
+- autoscaling
+- backup
+- batch
+- bcm-data-exports
+- bcm-pricing-calculator
+- bedrock
+- bedrock-agent-core
+- bedrock-agent-core-control
+- bedrock-runtime
+- budgets
+- ce
+- cloudcontrol
+- cloudformation
+- cloudfront
+- cloudhsmv2
+- cloudmap
+- cloudtrail
+- cloudwatchlogs
+- cloudwatchmetrics
+- codeartifact
+- codebuild
+- codedeploy
+- codegurureviewer
+- codepipeline
+- cognito
+- cognitoidentity
+- comprehend
+- configservice
+- connect
+- controlcatalog
+- controltower
+- cur
+- datasync
+- detective
+- dlm
+- dms
+- docdb
+- dynamodb
+- ec2
+- ecr
+- ecs
+- efs
+- eks
+- elasticache
+- elasticbeanstalk
+- elb
+- elbv2
+- emr
+- emrserverless
+- eventbridge
+- firehose
+- fis
+- globalaccelerator
+- glue
+- guardduty
+- iam
+- identitystore
+- inspector2
+- iot
+- iotdata
+- kinesis
+- kinesis-analytics
+- kms
+- lakeformation
+- lambda
+- lightsail
+- macie2
+- marketplace
+- memorydb
+- msk
+- mwaa
+- neptune
+- networkfirewall
+- oam
+- opensearch
+- organizations
+- pipes
+- pricing
+- ram
+- rds
+- rds-data
+- redshift
+- redshift-data
+- redshift-serverless
+- rekognition
+- resourceexplorer2
+- route53
+- route53resolver
+- rum
+- s3tables
+- s3vectors
+- sagemaker
+- scheduler
+- secretsmanager
+- securityhub
+- servicecatalog
+- servicequotas
+- ses
+- sns
+- sqs
+- ssm
+- ssoadmin
+- ssooidc
+- stepfunctions
+- swf
+- tagging
+- textract
+- timestream-influxdb
+- transcribe
+- transfer
+- translate
+- ui
+- verifiedpermissions
+- wafv2
+bootstrap:
+  enabled: true
+  runId: '1'
+  buckets:
+  - dwv-s3-smoke
+  - dwv-accumulo-lab
+probeImage:
+  repository: local/datawave/floci-probe
+  tag: phase1-20261018
+  pullPolicy: Never

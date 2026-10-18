@@ -1,0 +1,98 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ .Release.Name }}
+spec:
+  serviceName: {{ .Release.Name }}-headless
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: floci
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: floci
+        app.kubernetes.io/instance: {{ .Release.Name }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      terminationGracePeriodSeconds: 60
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        runAsGroup: 0
+        fsGroup: 1001
+        fsGroupChangePolicy: OnRootMismatch
+      nodeSelector:
+        {{- toYaml .Values.nodeSelector | nindent 8 }}
+      containers:
+        - name: floci
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}@{{ .Values.image.digest }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            - /app/application
+            - -Xms{{ .Values.nativeHeap.initial }}
+            - -Xmx{{ .Values.nativeHeap.maximum }}
+            - -Dquarkus.http.host=0.0.0.0
+            - -Dfloci.security.allow-unsafe-network-exposure=true
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+          ports:
+            - name: aws
+              containerPort: {{ .Values.service.port }}
+          env:
+            - name: FLOCI_PORT
+              value: {{ .Values.service.port | quote }}
+            - name: FLOCI_STORAGE_MODE
+              value: persistent
+            - name: FLOCI_STORAGE_PERSISTENT_PATH
+              value: /app/data
+            - name: FLOCI_DEFAULT_REGION
+              value: {{ .Values.region | quote }}
+            - name: FLOCI_HOSTNAME
+              value: "{{ .Release.Name }}.{{ .Release.Namespace }}.svc.cluster.local"
+            - name: FLOCI_BASE_URL
+              value: "http://{{ .Release.Name }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.port }}"
+            - name: QUARKUS_CONFIG_LOCATIONS
+              value: file:/etc/floci/application.yaml
+          startupProbe:
+            httpGet:
+              path: /health
+              port: aws
+            periodSeconds: 2
+            failureThreshold: 90
+            timeoutSeconds: 2
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: aws
+            periodSeconds: 15
+            timeoutSeconds: 3
+            failureThreshold: 4
+          readinessProbe:
+            httpGet:
+              path: /
+              port: aws
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: /app/data
+            - name: config
+              mountPath: /etc/floci
+              readOnly: true
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ .Release.Name }}-data
+        - name: config
+          configMap:
+            name: {{ .Release.Name }}-config

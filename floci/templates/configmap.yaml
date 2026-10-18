@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-config
+data:
+  application.yaml: |
+    floci:
+      services:
+        {{- range .Values.disabledServices }}
+        {{ . }}:
+          enabled: false
+        {{- end }}
+        s3:
+          enabled: true
+          enforce-auth: false
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-probes
+data:
+  s3_probe.py: |
+{{ .Files.Get "files/s3_probe.py" | indent 4 }}

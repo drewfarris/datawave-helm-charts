@@ -118,6 +118,12 @@ helm plugin install https://github.com/losisin/helm-values-schema-json.git
 find * -maxdepth 0 -type d -exec sh -c "cd {}; helm schema" \;
 ```
 
+## Local AWS emulation
+
+The independent [Floci chart](floci/README.md) provides persistent S3 emulation
+inside Minikube. Its installation and compatibility probes are separate from
+the driver; configuring Accumulo to use S3 is a later integration step.
+
 ## Troubleshooting Datawave
 
 ### Recovery after a host reboot

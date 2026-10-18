@@ -1,0 +1,11 @@
+Floci S3 endpoint: http://{{ .Release.Name }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.port }}
+Region: {{ .Values.region }}; use path-style addressing and synthetic credentials from {{ .Values.existingSecret }}.
+PVC: {{ .Release.Name }}-data (retained on uninstall).
+
+kubectl get pods,pvc -n {{ .Release.Namespace }} -o wide
+kubectl logs -n {{ .Release.Namespace }} {{ .Release.Name }}-0
+{{- if .Values.bootstrap.enabled }}
+kubectl logs -n {{ .Release.Namespace }} job/{{ .Release.Name }}-bootstrap-{{ .Values.bootstrap.runId }}
+{{- end }}
+
+This release does not configure DataWave or change Accumulo volumes.
