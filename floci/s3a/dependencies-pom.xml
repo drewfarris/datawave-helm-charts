@@ -1,0 +1,5 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>local.datawave.floci</groupId><artifactId>s3a-runtime</artifactId><version>1</version>
+  <dependencies><dependency><groupId>org.apache.hadoop</groupId><artifactId>hadoop-aws</artifactId><version>${hadoop.version}</version></dependency></dependencies>
+</project>

@@ -1,0 +1,35 @@
+# Complete scoped core-site overlay; explicit implementations also support JBoss Modules.
+config:
+  coreSiteProperties:
+  - name: fs.defaultFS
+    value: hdfs://hdfs-nn.default.svc.cluster.local:9000/
+  - name: fs.s3a.endpoint
+    value: http://floci.aws-emulation.svc.cluster.local:4566
+  - name: fs.s3a.endpoint.region
+    value: us-east-1
+  - name: fs.s3a.path.style.access
+    value: 'true'
+  - name: fs.s3a.connection.ssl.enabled
+    value: 'false'
+  - name: fs.s3a.aws.credentials.provider
+    value: org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider
+  - name: hadoop.security.credential.provider.path
+    value: jceks://file/etc/hadoop/credentials/floci.jceks
+  - name: fs.s3a.change.detection.source
+    value: etag
+  - name: fs.s3a.change.detection.mode
+    value: server
+  - name: fs.s3a.attempts.maximum
+    value: '3'
+  - name: fs.s3a.retry.limit
+    value: '3'
+  - name: fs.s3a.connection.establish.timeout
+    value: 15s
+  - name: fs.s3a.connection.timeout
+    value: 20s
+  - name: fs.file.impl
+    value: org.apache.hadoop.fs.LocalFileSystem
+  - name: fs.hdfs.impl
+    value: org.apache.hadoop.hdfs.DistributedFileSystem
+  - name: fs.s3a.impl
+    value: org.apache.hadoop.fs.s3a.S3AFileSystem
