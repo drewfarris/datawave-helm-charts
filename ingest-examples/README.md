@@ -18,7 +18,7 @@ From this chart repository, with the corrected ingest image available in Docker:
 
 ```bash
 ./ingest-examples/build-image.sh ../datawave
-minikube image load local/datawave/ingest-examples:8.2.1-SNAPSHOT-annotationfix
+minikube image load local/datawave/ingest-examples:8.4.0-SNAPSHOT-annotationfix
 ```
 
 The ingest base must contain the same Hadoop version as DataWave and the cluster's
@@ -37,7 +37,7 @@ EXAMPLES_IMAGE=your-registry/ingest-examples:your-tag \
 ```
 
 Use the source checkout and ingest base image from the same DataWave version.
-The default base is the locally tested `sandbox-20261011-hadoop341` image, which
+The default base is the locally tested `8.4.0-SNAPSHOT` image, which
 includes Hadoop 3.4.1, the Commons Lang alignment, and `lsof` fixes. Update chart `image` values
 when using a different examples image. For a remote cluster, publish the examples
 image to your registry and configure `imagePullSecrets` if needed.

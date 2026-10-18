@@ -1,6 +1,6 @@
 # Build with the DataWave SOURCE repository as context (see README).
 # Match this base image to the ingest image running in your stack.
-ARG INGEST_IMAGE=local/datawave/ingest-kubernetes:sandbox-20261011-hadoop341
+ARG INGEST_IMAGE=local/datawave/ingest-kubernetes:8.4.0-SNAPSHOT
 FROM ${INGEST_IMAGE}
 USER root
 RUN mkdir -p /opt/datawave-examples/default-config && \

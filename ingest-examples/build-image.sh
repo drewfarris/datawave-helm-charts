@@ -2,8 +2,8 @@
 set -euo pipefail
 chart_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 source_dir=${1:?Usage: build-image.sh /path/to/datawave/source}
-image=${EXAMPLES_IMAGE:-local/datawave/ingest-examples:8.2.1-SNAPSHOT-annotationfix}
-base=${INGEST_IMAGE:-local/datawave/ingest-kubernetes:sandbox-20261011-hadoop341}
+image=${EXAMPLES_IMAGE:-local/datawave/ingest-examples:8.4.0-SNAPSHOT-annotationfix}
+base=${INGEST_IMAGE:-local/datawave/ingest-kubernetes:8.4.0-SNAPSHOT}
 context_dir=$(mktemp -d "${TMPDIR:-/tmp}/datawave-examples-build.XXXXXX")
 trap 'rm -rf -- "$context_dir"' EXIT
 files=(

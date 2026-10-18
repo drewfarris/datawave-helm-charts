@@ -29,12 +29,13 @@ global:
 # Default Values for DataWave Deployment #
 ##########################################
 
+nodeSelector: {}
 datawaveDeployment:
   waitForIngest: true
   image:
-    name: ghcr.io/nationalsecurityagency/datawave/webservice-kubernetes
-    pullPolicy: Always
-    tag: 7.33.1
+    name: local/datawave/webservice-kubernetes
+    pullPolicy: IfNotPresent
+    tag: 8.4.0-SNAPSHOT
   # Allow WildFly boot and initial table-cache population before liveness checks.
   startupProbe:
     enabled: true

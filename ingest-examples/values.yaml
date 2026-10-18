@@ -1,6 +1,6 @@
 image:
   repository: local/datawave/ingest-examples
-  tag: 8.2.1-SNAPSHOT-annotationfix
+  tag: 8.4.0-SNAPSHOT-annotationfix
   pullPolicy: IfNotPresent
 imagePullSecrets:
   - name: dockerconfigjson-ghcr

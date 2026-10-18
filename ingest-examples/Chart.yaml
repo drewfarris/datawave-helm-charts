@@ -3,4 +3,4 @@ name: datawave-ingest-examples
 description: Run DataWave quickstart example ingestion against an existing stack
 type: application
 version: 0.1.0
-appVersion: 8.2.1-SNAPSHOT
+appVersion: 8.4.0-SNAPSHOT

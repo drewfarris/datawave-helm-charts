@@ -10,6 +10,6 @@ version: 1.0.3-1
 # Basic Metadata for this Chart #
 #################################
 
-appVersion: 7.5.0-SNAPSHOT
+appVersion: 8.4.0-SNAPSHOT
 description:  Deploys a DataWave Ingest service
 icon: https://code.nsa.gov/datawave/images/datawave-logo.png

@@ -147,7 +147,7 @@ function start_minikube() {
   else
       echo "Minikube cluster not purged."
   fi
-  minikube start --nodes 3 --cpus 4 --memory 15960 --disk-size 20480 
+  minikube start --nodes 3 --cpus 4 --memory 8192 --disk-size 20480
   if [ $? -eq 0 ]; then
     echo "Minikube started successfully."
   else
@@ -174,11 +174,10 @@ function start_minikube() {
 
 # Function to perform Helm operations
 function preload_docker_image() {
-  image=$1
+  local image="$1"
 
   echo "Checking for local image $image"
-  docker image ls "$image"
-  if [ $? -eq 0 ]; then
+  if docker image inspect "$image" > /dev/null 2>&1; then
     echo "$image exists locally, skipping pull.."
   else
     echo "$image does not exist locally, pulling.."

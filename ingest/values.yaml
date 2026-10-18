@@ -17,8 +17,8 @@ nameOverride: ""
 fullnameOverride: ""
 labels: {}
 image:
-  repository: ghcr.io/nationalsecurityagency/datawave/ingest-kubernetes
-  tag: 7.33.1
+  repository: local/datawave/ingest-kubernetes
+  tag: 8.4.0-SNAPSHOT
   pullPolicy: IfNotPresent
 deployment:
   replicaCount: 1
@@ -26,7 +26,7 @@ deployment:
   nodeSelector: {}
   tolerations: []
   affinity: {}
-libs: "/lib/hadoop-mapreduce/hadoop-mapreduce-client-core.jar:/lib/hadoop-hdfs/hadoop-hdfs-client.jar:/lib/hadoop-mapreduce/hadoop-mapreduce-client-common.jar:/lib/hadoop-mapreduce/hadoop-mapreduce-client-jobclient.jar:/lib/hadoop-mapreduce/hadoop-mapreduce-client-common.jar:/lib/hadoop-mapreduce/hadoop-mapreduce-client-jobclient.jar:/lib/hadoop-yarn/hadoop-yarn-client.jar:/lib/hadoop-yarn/hadoop-yarn-common.jar:/lib/hadoop-yarn/hadoop-yarn-api.jar:/lib/hadoop-yarn/lib/websocket-api-9.4.48.v20220622.jar:/lib/hadoop-yarn/lib/websocket-client-9.4.48.v20220622.jar:/lib/hadoop-yarn/lib/websocket-common-9.4.48.v20220622.jar"
+libs: "/lib/hadoop/hadoop-common.jar:/lib/hadoop/hadoop-annotations.jar:/lib/hadoop/lib/commons-collections-3.2.2.jar:/lib/hadoop-hdfs/hadoop-hdfs-client.jar:/lib/hadoop-mapreduce/hadoop-mapreduce-client-core.jar:/lib/hadoop-mapreduce/hadoop-mapreduce-client-common.jar:/lib/hadoop-mapreduce/hadoop-mapreduce-client-jobclient.jar:/lib/hadoop-yarn/hadoop-yarn-client.jar:/lib/hadoop-yarn/hadoop-yarn-common.jar:/lib/hadoop-yarn/hadoop-yarn-api.jar:/lib/hadoop-yarn/lib/websocket-api-9.4.57.v20241219.jar:/lib/hadoop-yarn/lib/websocket-client-9.4.57.v20241219.jar:/lib/hadoop-yarn/lib/websocket-common-9.4.57.v20241219.jar"
 hadoop:
   classpath:
     "/usr/local/hadoop/etc/hadoop:/usr/local/hadoop/lib/*:/usr/local/hadoop/.//*:/usr/local/hadoop-hdfs/./:/usr/local/hadoop-hdfs/lib/*:/usr/local/hadoop-hdfs/.//*:/usr/local/hadoop-mapreduce/.//*:/usr/local/hadoop-yarn/./:/usr/local/hadoop-yarn/lib/*:/usr/local/hadoop-yarn/.//*"
@@ -779,4 +779,4 @@ config:
         "mycsv.PREMIERED.data.field.type.class": datawave.data.type.DateType
         "mycsv.WEIGHT.data.field.type.class": datawave.data.type.NumberType
         "mycsv.RUNTIME.data.field.type.class": datawave.data.type.NumberType
-        "mycsv.facet.category.name.network": "NETWORK_NAME;GENRES,EMBEDDED_CAST_PERSON_GENDER,RATING_AVERAGE"    
+        "mycsv.facet.category.name.network": "NETWORK_NAME;GENRES,EMBEDDED_CAST_PERSON_GENDER,RATING_AVERAGE"
