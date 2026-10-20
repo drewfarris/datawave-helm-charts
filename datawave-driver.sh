@@ -3,7 +3,7 @@ USE_EXISTING_ZOOKEEPER=${USE_EXISTING_ZOOKEEPER:-false}
 USE_EXISTING_HADOOP=${USE_EXISTING_HADOOP:-false}
 INIT_LOCAL_HADOOP=${INIT_LOCAL_HADOOP:-false}
 USING_MINIKUBE=false
-BASEDIR="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 || exit; pwd -P )"
+BASEDIR="$( cd -- "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 || exit; pwd -P )"
 DATAWAVE_STACK="${BASEDIR}"/datawave-stack
 HELM_CHART=oci://ghcr.io/nationalsecurityagency/datawave-helm-charts/charts/datawave-system
 HELM_CHART_VERSION=1.0.0
@@ -11,11 +11,73 @@ NAMESPACE=default
 MYSQL_OPERATOR_CHART_VERSION=${MYSQL_OPERATOR_CHART_VERSION:-2.3.0}
 # Optional second values file, applied after the prompted base values file.
 DATAWAVE_VALUES_OVERLAY=${DATAWAVE_VALUES_OVERLAY:-}
+# Floci is an independent release; enabling it never migrates Accumulo files.
+DATAWAVE_ENABLE_FLOCI=${DATAWAVE_ENABLE_FLOCI:-true}
+FLOCI_NAMESPACE=${FLOCI_NAMESPACE:-aws-emulation}
+FLOCI_RELEASE=${FLOCI_RELEASE:-floci}
+FLOCI_CLIENT_NAMESPACE=${FLOCI_CLIENT_NAMESPACE:-default}
+FLOCI_VALUES_FILE=${FLOCI_VALUES_FILE:-}
+FLOCI_EVIDENCE_DIR=${FLOCI_EVIDENCE_DIR:-}
+if [ "$DATAWAVE_ENABLE_FLOCI" = true ]; then
+  DATAWAVE_ACCUMULO_STORAGE=${DATAWAVE_ACCUMULO_STORAGE:-floci}
+else
+  DATAWAVE_ACCUMULO_STORAGE=${DATAWAVE_ACCUMULO_STORAGE:-hdfs}
+fi
+FLOCI_ACCUMULO_VOLUME=${FLOCI_ACCUMULO_VOLUME:-s3a://dwv-accumulo/accumulo}
+
+guard_fresh_accumulo() {
+  case "$DATAWAVE_ACCUMULO_STORAGE" in
+    hdfs)
+      local releases current_values
+      releases=$(helm list -n "$NAMESPACE" --all -o json) || return 1
+      if jq -e 'any(.[]; .name == "dwv")' <<<"$releases" >/dev/null; then
+        current_values=$(helm get values dwv -n "$NAMESPACE" -o json) || return 1
+        if jq -e '."dwv-accumulo".hybridStorage.enabled == true' <<<"$current_values" >/dev/null; then
+          echo "ERROR: Cannot switch a hybrid instance to HDFS-only; no migration path is provided." >&2
+          return 1
+        fi
+      fi
+      return 0 ;;
+    floci)
+      if [ "$DATAWAVE_ENABLE_FLOCI" != true ]; then
+        echo "ERROR: Floci storage requires DATAWAVE_ENABLE_FLOCI=true." >&2
+        return 1
+      fi
+      python3 "$BASEDIR/floci/fresh/guard.py" --namespace "$NAMESPACE" ;;
+    *) echo "ERROR: DATAWAVE_ACCUMULO_STORAGE must be floci or hdfs." >&2; return 1 ;;
+  esac
+}
+
+setup_floci() {
+  if [ "$DATAWAVE_ENABLE_FLOCI" = false ]; then
+    echo "Floci deployment disabled. Existing Floci resources are retained."
+    return 0
+  fi
+  if [ "$DATAWAVE_ENABLE_FLOCI" != true ]; then
+    echo "ERROR: DATAWAVE_ENABLE_FLOCI must be true or false." >&2
+    return 1
+  fi
+  local args=(--namespace "$FLOCI_NAMESPACE" --release "$FLOCI_RELEASE"
+              --client-namespace "$FLOCI_CLIENT_NAMESPACE")
+  [ -z "$FLOCI_VALUES_FILE" ] || args+=(--values "$FLOCI_VALUES_FILE")
+  [ -z "$FLOCI_EVIDENCE_DIR" ] || args+=(--evidence "$FLOCI_EVIDENCE_DIR")
+  if [ "$DATAWAVE_ACCUMULO_STORAGE" = floci ]; then
+    local bucket=${FLOCI_ACCUMULO_VOLUME#s3a://}
+    args+=(--bucket "${bucket%%/*}")
+  fi
+  python3 "$BASEDIR/floci/tools/deploy.py" "${args[@]}" "$@"
+}
 
 function ready_helm_charts() {
   while true; do
-    read -p "Enter chart mode (local,remote) [remote]: " chart_mode
-    chart_mode=${chart_mode:-remote}
+    local default_chart_mode=remote
+    [ "$DATAWAVE_ACCUMULO_STORAGE" != floci ] || default_chart_mode=local
+    read -p "Enter chart mode (local,remote) [$default_chart_mode]: " chart_mode
+    chart_mode=${chart_mode:-$default_chart_mode}
+    if [ "$DATAWAVE_ACCUMULO_STORAGE" = floci ] && [ "$chart_mode" != local ]; then
+      echo "ERROR: Fresh hybrid storage requires the local charts in this checkout." >&2
+      return 1
+    fi
     # Check if input is one of the accepted values
     if [[ -z "$chart_mode" || "$chart_mode" == "" || "$chart_mode" == "local" || "$chart_mode" == "remote" ]]; then
         echo "Using Chart Mode: ${chart_mode:-remote}"
@@ -147,7 +209,9 @@ function start_minikube() {
   else
       echo "Minikube cluster not purged."
   fi
-  minikube start --nodes 3 --cpus 4 --memory 8192 --disk-size 20480
+  local minikube_args=(start --nodes 3 --cpus 4 --memory 8192 --disk-size 20480)
+  [ "$DATAWAVE_ACCUMULO_STORAGE" != floci ] || minikube_args+=(--driver=docker)
+  minikube "${minikube_args[@]}"
   if [ $? -eq 0 ]; then
     echo "Minikube started successfully."
   else
@@ -337,6 +401,15 @@ function helm_install() {
     values_args+=(-f "$DATAWAVE_VALUES_OVERLAY")
   fi
 
+  if [ "$DATAWAVE_ACCUMULO_STORAGE" = floci ]; then
+    local hybrid_values="$LOCAL_CHART_WORKDIR/fresh-hybrid-values.yaml"
+    local prepare_args=(--namespace "$NAMESPACE" --values "${values_file:-$DATAWAVE_STACK/values.yaml}"
+                        --output "$hybrid_values" --floci-namespace "$FLOCI_NAMESPACE"
+                        --floci-release "$FLOCI_RELEASE" --s3-volume "$FLOCI_ACCUMULO_VOLUME")
+    [ -z "$DATAWAVE_VALUES_OVERLAY" ] || prepare_args+=(--overlay "$DATAWAVE_VALUES_OVERLAY")
+    python3 "$BASEDIR/floci/fresh/prepare.py" "${prepare_args[@]}" || return 1
+    values_args+=(-f "$hybrid_values")
+  fi
   # shellcheck disable=SC2086
   helm -n "$NAMESPACE" upgrade --install dwv "$HELM_CHART" "${values_args[@]}" ${EXTRA_HELM_ARGS} --wait --timeout 15m0s
   if [ $? -eq 0 ]; then
@@ -348,33 +421,60 @@ function helm_install() {
 }
 
 
-# Main execution
-echo "Starting driver script for DataWave Cluster operations..."
+main() {
+  # These paths bypass GHCR login, host edits, MySQL and the DataWave release.
+  case "${1:-}" in
+    --floci-only) setup_floci; exit $? ;;
+    --check-floci) setup_floci --check; exit $? ;;
+    --help|-h)
+      echo "Usage: $0 [--floci-only|--check-floci]"
+      echo "Normal deployment: fresh Floci-backed Accumulo using local charts; existing unowned instances are rejected."
+      echo "DATAWAVE_ENABLE_FLOCI=false selects HDFS-only defaults; DATAWAVE_ACCUMULO_STORAGE overrides the storage mode."
+      echo "Floci options: FLOCI_NAMESPACE, FLOCI_RELEASE, FLOCI_CLIENT_NAMESPACE, FLOCI_VALUES_FILE, FLOCI_EVIDENCE_DIR."
+      exit 0 ;;
+    "") ;;
+    *) echo "Unknown argument: $1" >&2; exit 2 ;;
+  esac
 
-ready_helm_charts
-check_k8s_cluster
-set_namespace
-if [ "$USING_MINIKUBE" = "false" ]; then
-    echo "Skipping image preload since minikube cluster was not started with this deployment."
-else
-    preload_docker_image rabbitmq:3.11.4-alpine
-    preload_docker_image mysql:8.0.32
-    preload_docker_image busybox:1.28
-    preload_docker_image bitnamilegacy/zookeeper:3.6.4
-    configure_etc_hosts
-    update_core_dns
+  # Main execution
+  echo "Starting driver script for DataWave Cluster operations..."
+
+  ready_helm_charts || return 1
+  check_k8s_cluster
+  set_namespace
+  guard_fresh_accumulo || return 1
+  if [ "$USING_MINIKUBE" = "false" ]; then
+      echo "Skipping image preload since minikube cluster was not started with this deployment."
+  else
+      preload_docker_image rabbitmq:3.11.4-alpine
+      preload_docker_image mysql:8.0.32
+      preload_docker_image busybox:1.28
+      preload_docker_image bitnamilegacy/zookeeper:3.6.4
+      configure_etc_hosts
+      update_core_dns
+  fi
+
+  configure_repository_credentials
+  ghcr_login
+  create_secrets
+  if ! setup_mysql_operator; then
+    echo "MySQL Operator setup failed. Resolve the error before deploying DataWave."
+    exit 1
+  fi
+
+  FLOCI_CLIENT_NAMESPACE=$NAMESPACE
+  if ! setup_floci; then
+    echo "Floci setup failed. Resolve the error before deploying DataWave." >&2
+    exit 1
+  fi
+  helm_install || return 1
+
+
+
+  echo "Driver Script completed successfully. See kubectl get po for information"
+
+}
+
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+  main "$@"
 fi
-
-configure_repository_credentials
-ghcr_login
-create_secrets
-if ! setup_mysql_operator; then
-  echo "MySQL Operator setup failed. Resolve the error before deploying DataWave."
-  exit 1
-fi
-
-helm_install
-
-
-
-echo "Driver Script completed successfully. See kubectl get po for information"

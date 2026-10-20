@@ -40,7 +40,7 @@ data:
     /subsystem=datasources/data-source=CachedResultsDS:write-attribute(name=user-name,value="${env.CACHED_RESULTS_USERNAME}")
     /subsystem=datasources/data-source=CachedResultsDS:write-attribute(name=password,value="${env.CACHED_RESULTS_PASSWORD}")
     {{- end }}
-    {{ .Values.datawaveRuntimeConfig.additions}}
+    {{ .Values.datawaveRuntimeConfig.additions | nindent 4 }}
     
     # Run the batch commands (MUST BE LAST)
     run-batch

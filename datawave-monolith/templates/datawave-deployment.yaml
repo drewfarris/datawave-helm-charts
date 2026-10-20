@@ -141,8 +141,12 @@ spec:
             - containerPort: {{ .Values.datawaveDeployment.jvm.debug.port }}
               name: debug
           {{- end }}
-          resources: {}
+          resources:
+            {{- toYaml (.Values.datawaveDeployment.resources | default dict) | nindent 12 }}
           env:
+            {{- with .Values.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
             {{- if .Values.cachedResults.enabled }}
             - name: CACHED_RESULTS_USERNAME
               valueFrom:
@@ -178,6 +182,9 @@ spec:
               value: "{{ .Values.datawaveDeployment.jvm.debug.port }}"
             {{- end }}
           volumeMounts:
+            {{- with .Values.extraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
             - name: "{{ .Values.global.volumes.certificates.name }}"
               mountPath: "{{ .Values.global.volumes.certificates.destination }}"
               readOnly: true
@@ -192,6 +199,9 @@ spec:
       ###########################################
 
       volumes:
+        {{- with .Values.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
         - name: "{{ .Values.global.volumes.certificates.name }}"
           secret:
             secretName: "{{ .Values.global.certSecretName }}"

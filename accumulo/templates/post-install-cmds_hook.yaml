@@ -28,12 +28,18 @@ spec:
     imagePullPolicy: {{ .Values.image.pullPolicy }}
     command: ["/bin/bash", "/cmds/run.sh"]
     volumeMounts:
+    {{- with $.Values.extraVolumeMounts }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
     {{- include "accumulo.volumeMount" $.Values.global.volumes.hadoop | nindent 4 }}
     {{- include "accumulo.volumeMount" $.Values.global.volumes.accumulo | nindent 4 }}
     - name: cmds
       mountPath: /cmds
       readOnly: true
     env:
+    {{- with $.Values.extraEnv }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
     - name: HADOOP_CLASSPATH
       value: {{ .Values.hadoop.classpath }}
     - name: HADOOP_CONF_DIR
@@ -43,6 +49,9 @@ spec:
     resources:
       {{- toYaml .Values.cmds.resources | nindent 6 }}
   volumes:
+  {{- with $.Values.extraVolumes }}
+  {{- toYaml . | nindent 2 }}
+  {{- end }}
   {{- include "accumulo.volume" $.Values.global.volumes.hadoop | nindent 2 }}
   {{- include "accumulo.volume" $.Values.global.volumes.accumulo | nindent 2 }}
   - name: cmds

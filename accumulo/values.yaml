@@ -184,3 +184,9 @@ storage:
 
 # Optional environment entries for scoped credentials (never literal secrets).
 extraEnv: []
+
+# Only for a new instance (or restarts of one created by this bootstrap).
+hybridStorage:
+  enabled: false
+  hdfsVolume: ""
+  s3Volume: ""

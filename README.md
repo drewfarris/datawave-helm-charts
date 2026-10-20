@@ -30,6 +30,19 @@ driver waits up to five minutes for the operator and stops if setup fails. It pi
 the tested operator chart version to `2.3.0`; override it with
 `MYSQL_OPERATOR_CHART_VERSION` when validating another version.
 
+### Floci emulated AWS
+
+The driver deploys the independent Floci release before DataWave by default.
+Use `./datawave-driver.sh --check-floci` for read-only preflight or
+`./datawave-driver.sh --floci-only` to install and verify it on the current
+cluster without upgrading DataWave. Set `DATAWAVE_ENABLE_FLOCI=false` to skip
+this step. Python 3 with PyYAML is required when Floci is enabled.
+See [Floci driver options and client configuration](floci/README.md#driver-integration).
+Normal deployment now configures a **fresh Accumulo instance** with user RFiles
+on Floci S3 and system tables/WALs on HDFS. Local chart mode is required and
+is the default. Existing unowned Accumulo instances are rejected; no migration
+is provided. See the [fresh-instance workflow](floci/fresh/README.md).
+
 ### Using locally built application images
 
 Choose `local` chart mode to use changes in this checkout. Local packaging uses a

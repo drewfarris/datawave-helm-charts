@@ -29,6 +29,9 @@ spec:
     metadata:
       annotations:
         checksum/accumulo-config: {{ include (print $.Template.BasePath "/site-config.yaml") $ | sha256sum }}
+        {{- if .Values.hybridStorage.enabled }}
+        checksum/hybrid-bootstrap: {{ include (print $.Template.BasePath "/hybrid-bootstrap.yaml") $ | sha256sum }}
+        {{- end }}
       labels:
         {{- include "accumulo.labels" . | nindent 8 }}
         app.kubernetes.io/component: manager
@@ -53,6 +56,48 @@ spec:
         command: 
         - "/bin/sh"
         args: ["-c", "while [ `hdfs dfs -ls hdfs://{{ .Values.global.hdfs.namenode }}/datawave/accumulo-vfs-classpath | wc -l` -lt 5 ]; do echo \"Waiting for jars to load\"; sleep 10; done"]
+      {{- if .Values.hybridStorage.enabled }}
+      - name: initialize-hybrid-storage
+        image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        command: ["bash", "/hybrid-bootstrap/bootstrap.sh"]
+        env:
+        {{- with $.Values.extraEnv }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        - name: ACCUMULO_INSTANCE_NAME
+          value: {{ .Values.global.accumulo.instanceName | quote }}
+        - name: ACCUMULO_ROOT_PASSWORD
+          value: {{ .Values.config.userManagement.rootPassword | quote }}
+        - name: BOOTSTRAP_ZOOKEEPERS
+          value: {{ .Values.global.accumulo.zookeepers | quote }}
+        - name: BOOTSTRAP_HDFS
+          value: {{ required "hybridStorage.hdfsVolume is required" .Values.hybridStorage.hdfsVolume | quote }}
+        - name: BOOTSTRAP_S3
+          value: {{ required "hybridStorage.s3Volume is required" .Values.hybridStorage.s3Volume | quote }}
+        - name: HADOOP_CONF_DIR
+          value: {{ .Values.global.volumes.hadoop.destination | quote }}
+        - name: HADOOP_CLASSPATH
+          value: {{ .Values.hadoop.classpath | quote }}
+        - name: ACCUMULO_JAVA_OPTS
+          value: -Xmx256m -Xms64m
+        volumeMounts:
+        {{- with $.Values.extraVolumeMounts }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        - name: source-accumulo
+          mountPath: /source-accumulo
+          readOnly: true
+        {{- include "accumulo.volumeMount" $.Values.global.volumes.hadoop | nindent 8 }}
+        - name: hybrid-bootstrap
+          mountPath: /hybrid-bootstrap
+          readOnly: true
+        - name: bootstrap-work
+          mountPath: /bootstrap-work
+        resources:
+          requests: {cpu: 100m, memory: 128Mi}
+          limits: {memory: 768Mi}
+      {{- end }}
       hostname: accumulo-manager
       containers:
       - name: accumulo-manager
@@ -91,6 +136,16 @@ spec:
         resources:
           {{- toYaml .Values.manager.resources | nindent 10 }}
       volumes:
+        {{- if .Values.hybridStorage.enabled }}
+        - name: hybrid-bootstrap
+          configMap:
+            name: {{ include "accumulo.fullname" . }}-hybrid-bootstrap
+        - name: source-accumulo
+          configMap:
+            name: {{ .Values.global.volumes.accumulo.source.name }}
+        - name: bootstrap-work
+          emptyDir: {}
+        {{- end }}
         {{- with $.Values.extraVolumes }}
         {{- toYaml . | nindent 8 }}
         {{- end }}

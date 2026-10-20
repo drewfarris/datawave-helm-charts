@@ -1,0 +1,22 @@
+{{- if .Values.hybridStorage.enabled }}
+{{- if ne (int .Values.manager.replicaCount) 1 }}{{ fail "Fresh hybrid initialization requires exactly one manager" }}{{- end }}
+{{- if .Values.initialization.auto }}{{ fail "Hybrid storage requires initialization.auto=false" }}{{- end }}
+{{- if ne (include "accumulo.volumes" .) (printf "%s,%s" .Values.hybridStorage.hdfsVolume .Values.hybridStorage.s3Volume) }}{{ fail "Hybrid storage.volumes must contain exactly the HDFS and S3 volumes in that order" }}{{- end }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "accumulo.fullname" . }}-hybrid-bootstrap
+data:
+  bootstrap.sh: |
+    #!/usr/bin/env bash
+    set -euo pipefail
+    mkdir -p /bootstrap-work/accumulo
+    cp -L /source-accumulo/* /bootstrap-work/accumulo/
+    chmod -R u+rw /bootstrap-work/accumulo
+    export ACCUMULO_CONF_DIR=/bootstrap-work/accumulo
+    export CLASSPATH=/opt/datawave-bootstrap/bootstrap.jar
+    # Avoid requiring DataWave iterator classes during storage-only initialization.
+    sed -i '/^table.class.loader.context=/d' "$ACCUMULO_CONF_DIR/accumulo.properties"
+    timeout 300 hdfs dfsadmin -safemode wait
+    accumulo local.floci.HybridBootstrap "$ACCUMULO_INSTANCE_NAME" "$BOOTSTRAP_ZOOKEEPERS" "$BOOTSTRAP_HDFS" "$BOOTSTRAP_S3"
+{{- end }}

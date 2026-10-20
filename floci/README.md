@@ -1,7 +1,80 @@
 # Floci for the local DataWave environment
 
-This independent chart exposes an emulated S3 endpoint. It is not installed by
-`datawave-driver.sh`, and it does not change Accumulo volumes or DataWave settings.
+This independent chart exposes an emulated S3 endpoint. `datawave-driver.sh`
+installs it before DataWave by default. Normal deployments now use the
+[fresh hybrid Accumulo workflow](fresh/README.md).
+
+## Driver integration
+
+The driver requires Python 3 with PyYAML (`python3 -m pip install PyYAML`) in
+addition to its existing tools. Floci stays in a separate Helm release and
+namespace, even when DataWave uses remote charts.
+
+```bash
+# Read-only validation of the current context, values and credential agreement.
+./datawave-driver.sh --check-floci
+
+# Deploy/verify Floci on the current cluster without DataWave/MySQL upgrades,
+# GHCR login, host-file edits, cluster creation or purging.
+./datawave-driver.sh --floci-only
+
+# Normal interactive driver: Floci verification, then fresh hybrid Accumulo deployment.
+./datawave-driver.sh
+
+# Skip Floci setup; preserve any existing emulator and its retained data.
+DATAWAVE_ENABLE_FLOCI=false ./datawave-driver.sh
+```
+
+Settings (environment variables):
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `DATAWAVE_ENABLE_FLOCI` | `true` | Set exactly `false` to skip setup. |
+| `FLOCI_NAMESPACE` | `aws-emulation` | Emulator namespace. |
+| `FLOCI_RELEASE` | `floci` | Independent Helm release. |
+| `FLOCI_CLIENT_NAMESPACE` | `default` | Client namespace for Floci-only/check modes; normal mode uses the selected DataWave namespace. |
+| `FLOCI_VALUES_FILE` | empty | Optional overlay after chart defaults and existing release values. |
+| `FLOCI_EVIDENCE_DIR` | empty | Save bootstrap and per-node results in `driver-floci-result.json`. |
+
+Existing release values, credential Secrets and PVC identity are preserved.
+Missing credential copies are created using the existing copy; if neither copy
+exists, synthetic random credentials are generated without writing their values
+to local files or command arguments. Mismatched existing copies stop deployment
+before changes. A conflicting PVC storage class also stops deployment.
+
+The driver detects an existing Minikube profile from node labels and loads the
+probe image on its nodes, including when this invocation did not start Minikube.
+It builds the pinned local probe image if absent. Other clusters need a reachable
+probe image and pull policy configured in `FLOCI_VALUES_FILE`, plus a suitable
+node selector and storage class. The driver does not install CSI on an existing
+cluster. New Minikube clusters use the driver's CSI setup.
+
+Each run uses a fresh bootstrap Job ID, so a previously completed Job cannot
+substitute for current bucket checks. Sequential signed S3 write/read/hash/delete
+Jobs run on every node. They delete only their unique `driver-smoke/` keys and
+remove their successful probe Jobs; failed Jobs remain for diagnosis. The driver
+never runs the destructive compatibility/crash suites during startup.
+
+The client namespace receives `floci-aws-credentials` (or `existingSecret` from
+the Floci values) and `floci-aws-config` containing `AWS_ENDPOINT_URL`,
+`AWS_ENDPOINT_URL_S3`, `AWS_REGION` and `AWS_DEFAULT_REGION`. A new AWS SDK client
+can reference them explicitly:
+
+```yaml
+envFrom:
+  - configMapRef:
+      name: floci-aws-config
+  - secretRef:
+      name: floci-aws-credentials
+```
+
+Endpoint environment support and path-style settings depend on the client SDK.
+For Hadoop/Accumulo, continue using the validated S3A images, scoped Hadoop
+configuration and JCEKS credentials from the lab runbook. Normal deployment uses the [fresh-only hybrid bootstrap](fresh/README.md) to
+register HDFS/S3 volumes and pin system storage before manager startup. Existing
+unowned instances are rejected; no migration path is provided. Floci-only mode
+leaves Accumulo and the shared MySQL recovery procedure separate. Run `python3 -m unittest discover -s floci/tests -v` for flow and
+credential-preservation regression checks.
 
 ## Local defaults
 
@@ -44,7 +117,9 @@ Create namespace `aws-emulation` and an external Kubernetes Secret named
 `AWS_SECRET_ACCESS_KEY` containing synthetic development credentials. Keep the
 values outside the repository. Clients in `default` need a Secret with the same
 keys and values in their own namespace; Secrets cannot be mounted across
-namespaces. Existing DataWave services are not automatically wired to this Secret.
+namespaces. AWS SDK clients reference this Secret explicitly; the fresh Accumulo driver
+uses a separate JCEKS Secret for Hadoop/S3A. The
+driver creates the matching client copy and endpoint ConfigMap described above.
 
 ```bash
 helm lint ./floci

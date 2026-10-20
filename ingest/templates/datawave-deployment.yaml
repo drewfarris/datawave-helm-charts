@@ -7,6 +7,10 @@ metadata:
     app.kubernetes.io/component: ingest
 spec:
   replicas: {{ .Values.deployment.replicaCount }}
+  {{- with .Values.deployment.strategy }}
+  strategy:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
   selector:
     matchLabels:
       app.kubernetes.io/component: ingest
@@ -15,6 +19,7 @@ spec:
       annotations:
         checksum/general-ingest-config: {{ include (print $.Template.BasePath "/xml-config-configmap.yaml") . | sha256sum }}
         checksum/init-container-cmds: {{ include (print $.Template.BasePath "/init-container-start-cmds_secret.yaml") . | sha256sum }}
+        checksum/post-start-cmds: {{ include (print $.Template.BasePath "/post-start-cmds_secret.yaml") . | sha256sum }}
       labels:
         app.kubernetes.io/component: ingest
     spec:
@@ -54,7 +59,16 @@ spec:
         runAsNonRoot: true
       containers:
       - name: ingest
+        {{- if .Values.startupReadyFile }}
+        readinessProbe:
+          exec:
+            command: ["test", "-f", {{ .Values.startupReadyFile | quote }}]
+          periodSeconds: 5
+        {{- end }}
         env:
+        {{- with .Values.extraEnv }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
         - name: ADDITIONAL_INGEST_LIBS
           value: {{ .Values.libs }}
         - name: HADOOP_CLASSPATH
@@ -67,6 +81,9 @@ spec:
           {{- toYaml .Values.deployment.resources | nindent 10 }}
         command: ["/bin/bash", "/cmds/run.sh"]
         volumeMounts:
+        {{- with .Values.extraVolumeMounts }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
         - name: accumulo-config
           mountPath: /opt/accumulo/conf
         {{- if (.Values.config.sharedConfig).claim }}
@@ -101,6 +118,9 @@ spec:
         - name: hadoop-config
           mountPath: /usr/local/hadoop/conf
       volumes:
+      {{- with .Values.extraVolumes }}
+      {{- toYaml . | nindent 6 }}
+      {{- end }}
       {{- if (.Values.config.sharedConfig).claim }}
       - name: shared-ingest-config
         persistentVolumeClaim:

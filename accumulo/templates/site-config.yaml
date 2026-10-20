@@ -244,6 +244,7 @@ data:
      
      # instance.rcp.sasl.enabled=false
      # rpc.sasl.qop=auth
+     auth.type=password
      auth.principal=root
      auth.token={{ .Values.config.userManagement.rootPassword }}
 
